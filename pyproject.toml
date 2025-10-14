@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "adorable-cli"
+version = "0.1.0"
+description = "A simple Agno-based CLI assistant"
+authors = [{ name = "Your Name" }]
+dependencies = [
+    "agno>=2.1.3",
+    "rich>=13.0.0",
+    "openai>=1.0.0",
+    "ddgs<9.6.0",
+    "tavily-python>=0.7.12",
+    "firecrawl-py>=4.3.6",
+    "crawl4ai>=0.7.4",
+    "httpx[socks]>=0.28.1",
+    "chonkie>=1.3.1",
+    "mcp>=1.17.0",
+    "sqlalchemy>=2.0.44",
+]
+requires-python = ">=3.10"
+
+[project.scripts]
+adorable = "adorable_cli.main:main"
+ador = "adorable_cli.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.flake8]
+max-line-length = 100
+extend-ignore = ["E203", "W503"]  # 与 Black 常见兼容
+
+[tool.pycodestyle]
+max_line_length = 100
+
+[tool.black]
+line-length = 100
