@@ -160,7 +160,11 @@ jobs:
           docker run --rm --platform linux/arm64 -e PYTHON_VERSION=$PYTHON_VERSION -v "$PWD":/workspace -w /workspace quay.io/pypa/manylinux2014_aarch64 bash -lc '
             set -euo pipefail
             curl -LsSf https://astral.sh/uv/install.sh | sh
+            # Install Rust toolchain for building rust-based Python extensions (e.g., tiktoken)
+            curl -sSf https://sh.rustup.rs | sh -s -- -y
             export PATH="$HOME/.cargo/bin:$PATH"
+            rustc --version || true
+            cargo --version || true
             uv venv .venv -p $PYTHON_VERSION
             uv pip install -p .venv/bin/python -U pip setuptools wheel pyinstaller
             uv pip install -p .venv/bin/python -U .
