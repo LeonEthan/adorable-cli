@@ -163,6 +163,7 @@ jobs:
             # Install Rust toolchain for building rust-based Python extensions (e.g., tiktoken)
             curl -sSf https://sh.rustup.rs | sh -s -- -y
             export PATH="$HOME/.cargo/bin:$PATH"
+            [ -f "$HOME/.cargo/env" ] && source "$HOME/.cargo/env"
             rustc --version || true
             cargo --version || true
             uv venv .venv -p $PYTHON_VERSION
