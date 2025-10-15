@@ -169,10 +169,15 @@ jobs:
             [ -f "$HOME/.cargo/env" ] && source "$HOME/.cargo/env"
             rustc --version || true
             cargo --version || true
-            uv venv .venv -p $PYTHON_VERSION
+            # Use the preinstalled manylinux Python for exact ABI matching (e.g., cp311)
+            PYBIN=$(ls /opt/python/cp311*/bin/python | head -n 1)
+            echo "Using Python interpreter: $PYBIN"
+            uv venv .venv -p "$PYBIN"
             uv pip install -p .venv/bin/python -U pip setuptools wheel pyinstaller
             # Use locked dependency versions correctly: export the lockfile and sync
             if [ -f uv.lock ]; then
+              # Force binary wheels for heavy packages to avoid slow source builds on aarch64
+              export PIP_ONLY_BINARY="numpy,scipy,pillow,playwright,tiktoken"
               uv export --format requirements-txt -o requirements.lock.txt
               uv pip sync -p .venv/bin/python requirements.lock.txt
               # Install our local package without re-resolving deps
