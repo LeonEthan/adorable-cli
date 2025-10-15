@@ -65,9 +65,19 @@ CLI 的系统提示（system prompt）在 `src/adorable_cli/prompt.py` 中，并
 - 支持：
   - macOS：`darwin-arm64`、`darwin-x64`
   - Linux：`linux-x64`
+    - 已在以下发行版验证/推荐：
+      - Ubuntu 20.04/22.04/24.04（x86_64）
+      - Debian 11/12（amd64）
+      - CentOS Stream 8/9（x86_64）
+      - Amazon Linux 2（x86_64）
   - Windows：`win32-x64`
 - 不支持：
-  - Linux arm64（如 Ubuntu/CentOS on ARM、AWS Graviton、树莓派 64 位）
+  - Linux arm64（架构维度不支持；例如 Ubuntu/CentOS on ARM、AWS Graviton、树莓派 64 位）
+
+兼容性说明（Linux x64）：
+
+- 该二进制依赖系统的 `glibc` 版本。较老发行版可能因 `glibc` 过低导致运行失败；此时请改用“源码运行”方式。
+- 若你的系统不在上述推荐版本列表，但为现代 x64 发行版（如 Arch、Fedora、openSUSE 等），通常也可正常运行；遇到兼容性问题请反馈或使用源码运行。
 
 在不支持的平台上运行时，CLI 会提示“不支持当前平台”。
 
