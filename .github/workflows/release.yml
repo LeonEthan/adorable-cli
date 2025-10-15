@@ -37,14 +37,23 @@ jobs:
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
           SUB_DIR="npm/adorable-cli-darwin-arm64"
+          PKG_NAME=$(node -p "require('./$SUB_DIR/package.json').name")
           cp -f dist/adorable "$SUB_DIR/vendor/adorable"
           CUR=$(node -p "require('./$SUB_DIR/package.json').version")
+          echo "Main version: $PKG_VERSION; Subpackage: $PKG_NAME@$CUR"
+          npm config set //registry.npmjs.org/:_authToken "${NODE_AUTH_TOKEN}"
+          npm whoami || { echo "NPM auth failed. Ensure NPM_TOKEN is set."; exit 1; }
           if [ "$CUR" != "$PKG_VERSION" ]; then
             (cd "$SUB_DIR" && npm version "$PKG_VERSION" --no-git-tag-version)
           else
             echo "Version unchanged ($CUR), skipping npm version"
           fi
-          (cd "$SUB_DIR" && npm publish --access public)
+          PUBLISHED=$(npm view "$PKG_NAME" version 2>/dev/null || echo "")
+          if [ "$PUBLISHED" = "$PKG_VERSION" ]; then
+            echo "Already published $PKG_NAME@$PUBLISHED, skipping publish."
+          else
+            (cd "$SUB_DIR" && npm publish --access public)
+          fi
 
   macos-x64:
     name: macOS x64 (darwin-x64)
@@ -72,14 +81,23 @@ jobs:
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
           SUB_DIR="npm/adorable-cli-darwin-x64"
+          PKG_NAME=$(node -p "require('./$SUB_DIR/package.json').name")
           cp -f dist/adorable "$SUB_DIR/vendor/adorable"
           CUR=$(node -p "require('./$SUB_DIR/package.json').version")
+          echo "Main version: $PKG_VERSION; Subpackage: $PKG_NAME@$CUR"
+          npm config set //registry.npmjs.org/:_authToken "${NODE_AUTH_TOKEN}"
+          npm whoami || { echo "NPM auth failed. Ensure NPM_TOKEN is set."; exit 1; }
           if [ "$CUR" != "$PKG_VERSION" ]; then
             (cd "$SUB_DIR" && npm version "$PKG_VERSION" --no-git-tag-version)
           else
             echo "Version unchanged ($CUR), skipping npm version"
           fi
-          (cd "$SUB_DIR" && npm publish --access public)
+          PUBLISHED=$(npm view "$PKG_NAME" version 2>/dev/null || echo "")
+          if [ "$PUBLISHED" = "$PKG_VERSION" ]; then
+            echo "Already published $PKG_NAME@$PUBLISHED, skipping publish."
+          else
+            (cd "$SUB_DIR" && npm publish --access public)
+          fi
 
   linux-x64:
     name: Linux x64 (linux-x64)
@@ -107,14 +125,23 @@ jobs:
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
           SUB_DIR="npm/adorable-cli-linux-x64"
+          PKG_NAME=$(node -p "require('./$SUB_DIR/package.json').name")
           cp -f dist/adorable "$SUB_DIR/vendor/adorable"
           CUR=$(node -p "require('./$SUB_DIR/package.json').version")
+          echo "Main version: $PKG_VERSION; Subpackage: $PKG_NAME@$CUR"
+          npm config set //registry.npmjs.org/:_authToken "${NODE_AUTH_TOKEN}"
+          npm whoami || { echo "NPM auth failed. Ensure NPM_TOKEN is set."; exit 1; }
           if [ "$CUR" != "$PKG_VERSION" ]; then
             (cd "$SUB_DIR" && npm version "$PKG_VERSION" --no-git-tag-version)
           else
             echo "Version unchanged ($CUR), skipping npm version"
           fi
-          (cd "$SUB_DIR" && npm publish --access public)
+          PUBLISHED=$(npm view "$PKG_NAME" version 2>/dev/null || echo "")
+          if [ "$PUBLISHED" = "$PKG_VERSION" ]; then
+            echo "Already published $PKG_NAME@$PUBLISHED, skipping publish."
+          else
+            (cd "$SUB_DIR" && npm publish --access public)
+          fi
 
   linux-arm64:
     name: Linux arm64 (linux-arm64)
@@ -145,14 +172,23 @@ jobs:
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
           SUB_DIR="npm/adorable-cli-linux-arm64"
+          PKG_NAME=$(node -p "require('./$SUB_DIR/package.json').name")
           cp -f dist/adorable "$SUB_DIR/vendor/adorable"
           CUR=$(node -p "require('./$SUB_DIR/package.json').version")
+          echo "Main version: $PKG_VERSION; Subpackage: $PKG_NAME@$CUR"
+          npm config set //registry.npmjs.org/:_authToken "${NODE_AUTH_TOKEN}"
+          npm whoami || { echo "NPM auth failed. Ensure NPM_TOKEN is set."; exit 1; }
           if [ "$CUR" != "$PKG_VERSION" ]; then
             (cd "$SUB_DIR" && npm version "$PKG_VERSION" --no-git-tag-version)
           else
             echo "Version unchanged ($CUR), skipping npm version"
           fi
-          (cd "$SUB_DIR" && npm publish --access public)
+          PUBLISHED=$(npm view "$PKG_NAME" version 2>/dev/null || echo "")
+          if [ "$PUBLISHED" = "$PKG_VERSION" ]; then
+            echo "Already published $PKG_NAME@$PUBLISHED, skipping publish."
+          else
+            (cd "$SUB_DIR" && npm publish --access public)
+          fi
 
   windows-x64:
     name: Windows x64 (win32-x64)
@@ -182,14 +218,23 @@ jobs:
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
           SUB_DIR="npm/adorable-cli-win32-x64"
+          PKG_NAME=$(node -p "require('./$SUB_DIR/package.json').name")
           cp -f dist/adorable.exe "$SUB_DIR/vendor/adorable.exe"
           CUR=$(node -p "require('./$SUB_DIR/package.json').version")
+          echo "Main version: $PKG_VERSION; Subpackage: $PKG_NAME@$CUR"
+          npm config set //registry.npmjs.org/:_authToken "${NODE_AUTH_TOKEN}"
+          npm whoami || { echo "NPM auth failed. Ensure NPM_TOKEN is set."; exit 1; }
           if [ "$CUR" != "$PKG_VERSION" ]; then
             (cd "$SUB_DIR" && npm version "$PKG_VERSION" --no-git-tag-version)
           else
             echo "Version unchanged ($CUR), skipping npm version"
           fi
-          (cd "$SUB_DIR" && npm publish --access public)
+          PUBLISHED=$(npm view "$PKG_NAME" version 2>/dev/null || echo "")
+          if [ "$PUBLISHED" = "$PKG_VERSION" ]; then
+            echo "Already published $PKG_NAME@$PUBLISHED, skipping publish."
+          else
+            (cd "$SUB_DIR" && npm publish --access public)
+          fi
 
   publish-main:
     name: Publish main package
@@ -209,4 +254,12 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          npm publish --access public
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          npm config set //registry.npmjs.org/:_authToken "${NODE_AUTH_TOKEN}"
+          npm whoami || { echo "NPM auth failed. Ensure NPM_TOKEN is set."; exit 1; }
+          CURRENT=$(npm view adorable-cli version 2>/dev/null || echo "")
+          if [ "$CURRENT" = "$PKG_VERSION" ]; then
+            echo "Already published adorable-cli@$CURRENT, skipping publish."
+          else
+            npm publish --access public
+          fi
