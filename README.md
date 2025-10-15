@@ -4,7 +4,12 @@
 
 ## 快速开始
 
-- 全局安装并运行：
+- 推荐 pipx（独立环境）
+  - `pipx install "git+https://github.com/LeonEthan/adorable-cli.git"`
+  - 安装完成后运行：`adorable` 或 `ador`
+  - 先决条件：`Python >= 3.10`，系统已安装 `git`
+
+- NPM 全局安装并运行：
   - `npm i -g adorable-cli`
   - 运行 `adorable` 或 `ador`
 - 一次性运行（无需全局安装）：
