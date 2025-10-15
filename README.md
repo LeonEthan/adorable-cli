@@ -127,6 +127,16 @@ python -m adorable_cli.main
 
 - `adorable`、`ador`（都指向同一入口 `bin/adorable.js`）
 
+### 打包产物（onedir）与启动优化
+
+- 为降低冷启动开销，平台子包内的二进制采用 onedir 产物放置于 `vendor/` 下：
+  - 目录结构示例（macOS/Linux）：`vendor/adorable/` 内含可执行 `vendor/adorable/adorable` 及其依赖文件。
+  - Windows：`vendor/adorable/adorable.exe`。
+- Node 入口已兼容目录与单文件两种布局：
+  - 若 `vendor/adorable` 为目录，则执行内部的实际二进制（`adorable` 或 `adorable.exe`）。
+  - 若为单文件布局，则直接执行 `vendor/adorable`（或 `vendor/adorable.exe`）。
+- 采用 onedir 可避免单文件（onefile）每次运行的解压流程，显著减少冷启动等待时间。
+
 ## 常见问题与排错
 
 - 二进制未找到：
