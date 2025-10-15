@@ -169,6 +169,21 @@ jobs:
             [ -f "$HOME/.cargo/env" ] && source "$HOME/.cargo/env"
             rustc --version || true
             cargo --version || true
+            # Install libclang/llvm toolchain to satisfy rust bindgen builds (e.g., primp)
+            PKGMGR=$(command -v dnf || command -v yum || command -v microdnf || echo "")
+            if [ -n "$PKGMGR" ]; then
+              if [ "$(basename "$PKGMGR")" = "microdnf" ]; then
+                $PKGMGR install -y clang llvm llvm-libs cmake make gcc gcc-c++ git || true
+              else
+                $PKGMGR -y install clang llvm llvm-libs cmake make gcc gcc-c++ git || true
+              fi
+            fi
+            if command -v llvm-config >/dev/null 2>&1; then
+              export LIBCLANG_PATH="$(llvm-config --libdir)"
+            else
+              export LIBCLANG_PATH="/usr/lib64"
+            fi
+            export LD_LIBRARY_PATH="$LIBCLANG_PATH:$LD_LIBRARY_PATH"
             # Use the preinstalled manylinux Python for exact ABI matching (e.g., cp311)
             PYBIN=$(ls /opt/python/cp311*/bin/python | head -n 1)
             echo "Using Python interpreter: $PYBIN"
