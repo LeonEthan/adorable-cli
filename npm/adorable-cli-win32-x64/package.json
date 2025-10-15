@@ -5,7 +5,7 @@
   "os": ["win32"],
   "cpu": ["x64"],
   "files": [
-    "vendor/adorable.exe",
+    "vendor/adorable",
     "package.json"
   ],
   "engines": {
