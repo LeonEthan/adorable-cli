@@ -279,7 +279,7 @@ jobs:
 
   publish-main:
     name: Publish main package
-    needs: [macos-arm64, macos-x64, linux-x64, linux-arm64, windows-x64]
+    needs: [macos-arm64, macos-x64, linux-x64, windows-x64]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -290,7 +290,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       - name: Sync optionalDependencies to current version
         run: |
-          node -e "const fs=require('fs');const p=require('./package.json');const v=p.version;['adorable-cli-darwin-arm64','adorable-cli-darwin-x64','adorable-cli-linux-x64','adorable-cli-linux-arm64','adorable-cli-win32-x64'].forEach(k=>p.optionalDependencies[k]='^'+v);fs.writeFileSync('package.json', JSON.stringify(p, null, 2));"
+          node -e "const fs=require('fs');const p=require('./package.json');const v=p.version;['@leonethan/adorable-cli-darwin-arm64','@leonethan/adorable-cli-darwin-x64','@leonethan/adorable-cli-linux-x64','@leonethan/adorable-cli-win32-x64'].forEach(k=>p.optionalDependencies[k]='^'+v);fs.writeFileSync('package.json', JSON.stringify(p, null, 2));"
       - name: Publish main package
         if: startsWith(github.ref, 'refs/tags/')
         env:
