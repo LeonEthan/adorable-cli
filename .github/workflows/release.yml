@@ -36,8 +36,15 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
-          cp -f dist/adorable npm/adorable-cli-darwin-arm64/vendor/adorable
-          (cd npm/adorable-cli-darwin-arm64 && npm version "$PKG_VERSION" --no-git-tag-version && npm publish --access public)
+          SUB_DIR="npm/adorable-cli-darwin-arm64"
+          cp -f dist/adorable "$SUB_DIR/vendor/adorable"
+          CUR=$(node -p "require('./$SUB_DIR/package.json').version")
+          if [ "$CUR" != "$PKG_VERSION" ]; then
+            (cd "$SUB_DIR" && npm version "$PKG_VERSION" --no-git-tag-version)
+          else
+            echo "Version unchanged ($CUR), skipping npm version"
+          fi
+          (cd "$SUB_DIR" && npm publish --access public)
 
   macos-x64:
     name: macOS x64 (darwin-x64)
@@ -64,8 +71,15 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
-          cp -f dist/adorable npm/adorable-cli-darwin-x64/vendor/adorable
-          (cd npm/adorable-cli-darwin-x64 && npm version "$PKG_VERSION" --no-git-tag-version && npm publish --access public)
+          SUB_DIR="npm/adorable-cli-darwin-x64"
+          cp -f dist/adorable "$SUB_DIR/vendor/adorable"
+          CUR=$(node -p "require('./$SUB_DIR/package.json').version")
+          if [ "$CUR" != "$PKG_VERSION" ]; then
+            (cd "$SUB_DIR" && npm version "$PKG_VERSION" --no-git-tag-version)
+          else
+            echo "Version unchanged ($CUR), skipping npm version"
+          fi
+          (cd "$SUB_DIR" && npm publish --access public)
 
   linux-x64:
     name: Linux x64 (linux-x64)
@@ -92,8 +106,15 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
-          cp -f dist/adorable npm/adorable-cli-linux-x64/vendor/adorable
-          (cd npm/adorable-cli-linux-x64 && npm version "$PKG_VERSION" --no-git-tag-version && npm publish --access public)
+          SUB_DIR="npm/adorable-cli-linux-x64"
+          cp -f dist/adorable "$SUB_DIR/vendor/adorable"
+          CUR=$(node -p "require('./$SUB_DIR/package.json').version")
+          if [ "$CUR" != "$PKG_VERSION" ]; then
+            (cd "$SUB_DIR" && npm version "$PKG_VERSION" --no-git-tag-version)
+          else
+            echo "Version unchanged ($CUR), skipping npm version"
+          fi
+          (cd "$SUB_DIR" && npm publish --access public)
 
   linux-arm64:
     name: Linux arm64 (linux-arm64)
@@ -123,8 +144,15 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
-          cp -f dist/adorable npm/adorable-cli-linux-arm64/vendor/adorable
-          (cd npm/adorable-cli-linux-arm64 && npm version "$PKG_VERSION" --no-git-tag-version && npm publish --access public)
+          SUB_DIR="npm/adorable-cli-linux-arm64"
+          cp -f dist/adorable "$SUB_DIR/vendor/adorable"
+          CUR=$(node -p "require('./$SUB_DIR/package.json').version")
+          if [ "$CUR" != "$PKG_VERSION" ]; then
+            (cd "$SUB_DIR" && npm version "$PKG_VERSION" --no-git-tag-version)
+          else
+            echo "Version unchanged ($CUR), skipping npm version"
+          fi
+          (cd "$SUB_DIR" && npm publish --access public)
 
   windows-x64:
     name: Windows x64 (win32-x64)
@@ -153,11 +181,15 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
-          cp -f dist/adorable.exe npm/adorable-cli-win32-x64/vendor/adorable.exe
-          pushd npm/adorable-cli-win32-x64
-          npm version "$PKG_VERSION" --no-git-tag-version
-          npm publish --access public
-          popd
+          SUB_DIR="npm/adorable-cli-win32-x64"
+          cp -f dist/adorable.exe "$SUB_DIR/vendor/adorable.exe"
+          CUR=$(node -p "require('./$SUB_DIR/package.json').version")
+          if [ "$CUR" != "$PKG_VERSION" ]; then
+            (cd "$SUB_DIR" && npm version "$PKG_VERSION" --no-git-tag-version)
+          else
+            echo "Version unchanged ($CUR), skipping npm version"
+          fi
+          (cd "$SUB_DIR" && npm publish --access public)
 
   publish-main:
     name: Publish main package
