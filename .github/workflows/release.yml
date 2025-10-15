@@ -176,8 +176,10 @@ jobs:
             uv pip install -p .venv/bin/python -U pip setuptools wheel pyinstaller
             # Use locked dependency versions correctly: export the lockfile and sync
             if [ -f uv.lock ]; then
+              # Force binary wheels for heavy packages and pre-install them to avoid source builds
+              export PIP_ONLY_BINARY="numpy,scipy,pillow,playwright,tiktoken,shapely,lxml,cryptography,tokenizers"
+              uv pip install -p .venv/bin/python --only-binary :all: numpy scipy pillow playwright tiktoken shapely lxml cryptography tokenizers
               # Force binary wheels for heavy packages to avoid slow source builds on aarch64
-              export PIP_ONLY_BINARY="numpy,scipy,pillow,playwright,tiktoken"
               uv export --format requirements-txt -o requirements.lock.txt
               uv pip sync -p .venv/bin/python requirements.lock.txt
               # Install our local package without re-resolving deps
