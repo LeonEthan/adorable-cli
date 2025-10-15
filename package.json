@@ -10,7 +10,6 @@
     "adorable-cli-darwin-arm64": "^0.1.0",
     "adorable-cli-darwin-x64": "^0.1.0",
     "adorable-cli-linux-x64": "^0.1.0",
-    "adorable-cli-linux-arm64": "^0.1.0",
     "adorable-cli-win32-x64": "^0.1.0"
   },
   "files": [
