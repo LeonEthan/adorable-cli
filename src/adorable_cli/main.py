@@ -20,7 +20,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
-from .prompt import (
+from adorable_cli.prompt import (
     MAIN_AGENT_DESCRIPTION,
     MAIN_AGENT_INSTRUCTIONS,
 )

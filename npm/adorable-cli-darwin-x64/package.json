@@ -1,0 +1,17 @@
+{
+  "name": "adorable-cli-darwin-x64",
+  "version": "0.1.0",
+  "description": "Adorable CLI binary for macOS x64",
+  "os": ["darwin"],
+  "cpu": ["x64"],
+  "files": [
+    "vendor/adorable",
+    "package.json"
+  ],
+  "engines": {
+    "node": ">=16"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "adorable-cli-darwin-arm64",
+  "version": "0.1.0",
+  "description": "Adorable CLI binary for macOS arm64",
+  "os": ["darwin"],
+  "cpu": ["arm64"],
+  "files": [
+    "vendor/adorable",
+    "package.json"
+  ]
+}
