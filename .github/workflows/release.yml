@@ -32,6 +32,7 @@ jobs:
           uv pip install -p .venv/bin/python -U .
           .venv/bin/python -m PyInstaller -F -n adorable src/adorable_cli/main.py
       - name: Prepare subpackage and publish
+        if: startsWith(github.ref, 'refs/tags/')
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -76,6 +77,7 @@ jobs:
           uv pip install -p .venv/bin/python -U .
           .venv/bin/python -m PyInstaller -F -n adorable src/adorable_cli/main.py
       - name: Prepare subpackage and publish
+        if: startsWith(github.ref, 'refs/tags/')
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -120,6 +122,7 @@ jobs:
           uv pip install -p .venv/bin/python -U .
           .venv/bin/python -m PyInstaller -F -n adorable src/adorable_cli/main.py
       - name: Prepare subpackage and publish
+        if: startsWith(github.ref, 'refs/tags/')
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -168,9 +171,10 @@ jobs:
             cargo --version || true
             uv venv .venv -p $PYTHON_VERSION
             uv pip install -p .venv/bin/python -U pip setuptools wheel pyinstaller
-            # Use locked dependency versions to avoid source builds (e.g., numpy on aarch64)
+            # Use locked dependency versions correctly: export the lockfile and sync
             if [ -f uv.lock ]; then
-              uv pip install -p .venv/bin/python -r uv.lock
+              uv export --format requirements-txt -o requirements.lock.txt
+              uv pip sync -p .venv/bin/python requirements.lock.txt
               # Install our local package without re-resolving deps
               uv pip install -p .venv/bin/python -U --no-deps .
             else
@@ -179,6 +183,7 @@ jobs:
             .venv/bin/python -m PyInstaller -F -n adorable src/adorable_cli/main.py
           '
       - name: Prepare subpackage and publish
+        if: startsWith(github.ref, 'refs/tags/')
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
