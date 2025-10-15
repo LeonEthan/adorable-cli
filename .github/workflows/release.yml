@@ -1,0 +1,180 @@
+name: Release Binaries and Publish NPM Packages
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  NODE_VERSION: '20'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  macos-arm64:
+    name: macOS arm64 (darwin-arm64)
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - name: Build binary with PyInstaller
+        run: |
+          uv venv .venv -p $PYTHON_VERSION
+          uv pip install -p .venv/bin/python -U pip setuptools wheel pyinstaller
+          uv pip install -p .venv/bin/python -U .
+          .venv/bin/python -m PyInstaller -F -n adorable src/adorable_cli/main.py
+      - name: Prepare subpackage and publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          cp -f dist/adorable npm/adorable-cli-darwin-arm64/vendor/adorable
+          (cd npm/adorable-cli-darwin-arm64 && npm version "$PKG_VERSION" --no-git-tag-version && npm publish --access public)
+
+  macos-x64:
+    name: macOS x64 (darwin-x64)
+    runs-on: macos-13
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - name: Build binary with PyInstaller
+        run: |
+          uv venv .venv -p $PYTHON_VERSION
+          uv pip install -p .venv/bin/python -U pip setuptools wheel pyinstaller
+          uv pip install -p .venv/bin/python -U .
+          .venv/bin/python -m PyInstaller -F -n adorable src/adorable_cli/main.py
+      - name: Prepare subpackage and publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          cp -f dist/adorable npm/adorable-cli-darwin-x64/vendor/adorable
+          (cd npm/adorable-cli-darwin-x64 && npm version "$PKG_VERSION" --no-git-tag-version && npm publish --access public)
+
+  linux-x64:
+    name: Linux x64 (linux-x64)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - name: Build binary with PyInstaller
+        run: |
+          uv venv .venv -p $PYTHON_VERSION
+          uv pip install -p .venv/bin/python -U pip setuptools wheel pyinstaller
+          uv pip install -p .venv/bin/python -U .
+          .venv/bin/python -m PyInstaller -F -n adorable src/adorable_cli/main.py
+      - name: Prepare subpackage and publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          cp -f dist/adorable npm/adorable-cli-linux-x64/vendor/adorable
+          (cd npm/adorable-cli-linux-x64 && npm version "$PKG_VERSION" --no-git-tag-version && npm publish --access public)
+
+  linux-arm64:
+    name: Linux arm64 (linux-arm64)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Enable QEMU for cross-arch containers
+        uses: docker/setup-qemu-action@v3
+      - name: Build inside manylinux aarch64 container
+        run: |
+          docker run --rm --platform linux/arm64 -e PYTHON_VERSION=$PYTHON_VERSION -v "$PWD":/workspace -w /workspace quay.io/pypa/manylinux2014_aarch64 bash -lc '
+            set -euo pipefail
+            curl -LsSf https://astral.sh/uv/install.sh | sh
+            export PATH="$HOME/.cargo/bin:$PATH"
+            uv venv .venv -p $PYTHON_VERSION
+            uv pip install -p .venv/bin/python -U pip setuptools wheel pyinstaller
+            uv pip install -p .venv/bin/python -U .
+            .venv/bin/python -m PyInstaller -F -n adorable src/adorable_cli/main.py
+          '
+      - name: Prepare subpackage and publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          cp -f dist/adorable npm/adorable-cli-linux-arm64/vendor/adorable
+          (cd npm/adorable-cli-linux-arm64 && npm version "$PKG_VERSION" --no-git-tag-version && npm publish --access public)
+
+  windows-x64:
+    name: Windows x64 (win32-x64)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install uv
+        shell: powershell
+        run: |
+          irm https://astral.sh/uv/install.ps1 | iex
+      - name: Build binary with PyInstaller
+        shell: bash
+        run: |
+          uv venv .venv -p $PYTHON_VERSION
+          uv pip install -p .venv/Scripts/python.exe -U pip setuptools wheel pyinstaller
+          uv pip install -p .venv/Scripts/python.exe -U .
+          .venv/Scripts/python.exe -m PyInstaller -F -n adorable src/adorable_cli/main.py
+      - name: Prepare subpackage and publish
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          cp -f dist/adorable.exe npm/adorable-cli-win32-x64/vendor/adorable.exe
+          pushd npm/adorable-cli-win32-x64
+          npm version "$PKG_VERSION" --no-git-tag-version
+          npm publish --access public
+          popd
+
+  publish-main:
+    name: Publish main package
+    needs: [macos-arm64, macos-x64, linux-x64, linux-arm64, windows-x64]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Sync optionalDependencies to current version
+        run: |
+          node -e "const fs=require('fs');const p=require('./package.json');const v=p.version;['adorable-cli-darwin-arm64','adorable-cli-darwin-x64','adorable-cli-linux-x64','adorable-cli-linux-arm64','adorable-cli-win32-x64'].forEach(k=>p.optionalDependencies[k]='^'+v);fs.writeFileSync('package.json', JSON.stringify(p, null, 2));"
+      - name: Publish main package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm publish --access public
