@@ -113,10 +113,10 @@ python -m adorable_cli.main
 
 - 发布工作流仅在推送 `v*` 标签时触发。
 - 平台二进制通过各自的子包发布到 NPM：
-  - `@leonethan/adorable-cli-darwin-arm64`
-  - `@leonethan/adorable-cli-darwin-x64`
-  - `@leonethan/adorable-cli-linux-x64`
-  - `@leonethan/adorable-cli-win32-x64`
+  - `@loenethan/adorable-cli-darwin-arm64`
+  - `@loenethan/adorable-cli-darwin-x64`
+  - `@loenethan/adorable-cli-linux-x64`
+  - `@loenethan/adorable-cli-win32-x64`
 
 主包 `adorable-cli` 暴露可执行：
 

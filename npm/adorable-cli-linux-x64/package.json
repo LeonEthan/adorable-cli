@@ -1,5 +1,5 @@
 {
-  "name": "@leonethan/adorable-cli-linux-x64",
+  "name": "@loenethan/adorable-cli-linux-x64",
   "version": "0.1.0",
   "description": "Adorable CLI binary for Linux x64",
   "os": ["linux"],

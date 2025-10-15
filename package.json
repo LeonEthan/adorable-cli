@@ -7,10 +7,10 @@
     "ador": "bin/adorable.js"
   },
   "optionalDependencies": {
-    "@leonethan/adorable-cli-darwin-arm64": "^0.1.0",
-    "@leonethan/adorable-cli-darwin-x64": "^0.1.0",
-    "@leonethan/adorable-cli-linux-x64": "^0.1.0",
-    "@leonethan/adorable-cli-win32-x64": "^0.1.0"
+    "@loenethan/adorable-cli-darwin-arm64": "^0.1.0",
+    "@loenethan/adorable-cli-darwin-x64": "^0.1.0",
+    "@loenethan/adorable-cli-linux-x64": "^0.1.0",
+    "@loenethan/adorable-cli-win32-x64": "^0.1.0"
   },
   "files": [
     "bin",

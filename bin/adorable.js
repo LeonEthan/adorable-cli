@@ -4,10 +4,10 @@ const path = require("path");
 const fs = require("fs");
 
 const platformPkgs = {
-  "darwin:arm64": "@leonethan/adorable-cli-darwin-arm64",
-  "darwin:x64": "@leonethan/adorable-cli-darwin-x64",
-  "linux:x64": "@leonethan/adorable-cli-linux-x64",
-  "win32:x64": "@leonethan/adorable-cli-win32-x64",
+  "darwin:arm64": "@loenethan/adorable-cli-darwin-arm64",
+  "darwin:x64": "@loenethan/adorable-cli-darwin-x64",
+  "linux:x64": "@loenethan/adorable-cli-linux-x64",
+  "win32:x64": "@loenethan/adorable-cli-win32-x64",
 };
 
 function resolveModulePackageRoot(pkg) {
