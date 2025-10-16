@@ -30,7 +30,7 @@ jobs:
           uv venv .venv -p $PYTHON_VERSION
           uv pip install -p .venv/bin/python -U pip setuptools wheel pyinstaller
           uv pip install -p .venv/bin/python -U .
-          .venv/bin/python -m PyInstaller -F -n adorable src/adorable_cli/main.py
+          .venv/bin/python -m PyInstaller -D --clean -n adorable src/adorable_cli/main.py
       - name: Prepare subpackage and publish
         if: startsWith(github.ref, 'refs/tags/')
         env:
@@ -39,7 +39,10 @@ jobs:
           PKG_VERSION=$(node -p "require('./package.json').version")
           SUB_DIR="npm/adorable-cli-darwin-arm64"
           PKG_NAME=$(node -p "require('./$SUB_DIR/package.json').name")
-          cp -f dist/adorable "$SUB_DIR/vendor/adorable"
+          # In onedir mode, the output is a directory. Clear the old vendor dir and copy the new one.
+          rm -rf "$SUB_DIR/vendor"
+          mkdir -p "$SUB_DIR/vendor"
+          cp -r dist/adorable "$SUB_DIR/vendor/"
           CUR=$(node -p "require('./$SUB_DIR/package.json').version")
           echo "Main version: $PKG_VERSION; Subpackage: $PKG_NAME@$CUR"
           npm config set //registry.npmjs.org/:_authToken "${NODE_AUTH_TOKEN}"
@@ -75,7 +78,7 @@ jobs:
           uv venv .venv -p $PYTHON_VERSION
           uv pip install -p .venv/bin/python -U pip setuptools wheel pyinstaller
           uv pip install -p .venv/bin/python -U .
-          .venv/bin/python -m PyInstaller -F -n adorable src/adorable_cli/main.py
+          .venv/bin/python -m PyInstaller -D --clean -n adorable src/adorable_cli/main.py
       - name: Prepare subpackage and publish
         if: startsWith(github.ref, 'refs/tags/')
         env:
@@ -84,7 +87,9 @@ jobs:
           PKG_VERSION=$(node -p "require('./package.json').version")
           SUB_DIR="npm/adorable-cli-darwin-x64"
           PKG_NAME=$(node -p "require('./$SUB_DIR/package.json').name")
-          cp -f dist/adorable "$SUB_DIR/vendor/adorable"
+          rm -rf "$SUB_DIR/vendor"
+          mkdir -p "$SUB_DIR/vendor"
+          cp -r dist/adorable "$SUB_DIR/vendor/"
           CUR=$(node -p "require('./$SUB_DIR/package.json').version")
           echo "Main version: $PKG_VERSION; Subpackage: $PKG_NAME@$CUR"
           npm config set //registry.npmjs.org/:_authToken "${NODE_AUTH_TOKEN}"
@@ -120,7 +125,7 @@ jobs:
           uv venv .venv -p $PYTHON_VERSION
           uv pip install -p .venv/bin/python -U pip setuptools wheel pyinstaller
           uv pip install -p .venv/bin/python -U .
-          .venv/bin/python -m PyInstaller -F -n adorable src/adorable_cli/main.py
+          .venv/bin/python -m PyInstaller -D --clean -n adorable src/adorable_cli/main.py
       - name: Prepare subpackage and publish
         if: startsWith(github.ref, 'refs/tags/')
         env:
@@ -129,7 +134,9 @@ jobs:
           PKG_VERSION=$(node -p "require('./package.json').version")
           SUB_DIR="npm/adorable-cli-linux-x64"
           PKG_NAME=$(node -p "require('./$SUB_DIR/package.json').name")
-          cp -f dist/adorable "$SUB_DIR/vendor/adorable"
+          rm -rf "$SUB_DIR/vendor"
+          mkdir -p "$SUB_DIR/vendor"
+          cp -r dist/adorable "$SUB_DIR/vendor/"
           CUR=$(node -p "require('./$SUB_DIR/package.json').version")
           echo "Main version: $PKG_VERSION; Subpackage: $PKG_NAME@$CUR"
           npm config set //registry.npmjs.org/:_authToken "${NODE_AUTH_TOKEN}"
@@ -203,7 +210,7 @@ jobs:
             else
               uv pip install -p .venv/bin/python -U .
             fi
-            .venv/bin/python -m PyInstaller -F -n adorable src/adorable_cli/main.py
+            .venv/bin/python -m PyInstaller -D --clean -n adorable src/adorable_cli/main.py
           '
       - name: Prepare subpackage and publish
         if: startsWith(github.ref, 'refs/tags/')
@@ -213,7 +220,10 @@ jobs:
           PKG_VERSION=$(node -p "require('./package.json').version")
           SUB_DIR="npm/adorable-cli-linux-arm64"
           PKG_NAME=$(node -p "require('./$SUB_DIR/package.json').name")
-          cp -f dist/adorable "$SUB_DIR/vendor/adorable"
+          # In onedir mode, the output is a directory. Clear the old vendor dir and copy the new one.
+          rm -rf "$SUB_DIR/vendor"
+          mkdir -p "$SUB_DIR/vendor"
+          cp -r dist/adorable "$SUB_DIR/vendor/"
           CUR=$(node -p "require('./$SUB_DIR/package.json').version")
           echo "Main version: $PKG_VERSION; Subpackage: $PKG_NAME@$CUR"
           npm config set //registry.npmjs.org/:_authToken "${NODE_AUTH_TOKEN}"
@@ -250,7 +260,7 @@ jobs:
           uv venv .venv -p $PYTHON_VERSION
           uv pip install -p .venv/Scripts/python.exe -U pip setuptools wheel pyinstaller
           uv pip install -p .venv/Scripts/python.exe -U .
-          .venv/Scripts/python.exe -m PyInstaller -F -n adorable src/adorable_cli/main.py
+          .venv/Scripts/python.exe -m PyInstaller -D --clean -n adorable src/adorable_cli/main.py
       - name: Prepare subpackage and publish
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
@@ -260,7 +270,11 @@ jobs:
           PKG_VERSION=$(node -p "require('./package.json').version")
           SUB_DIR="npm/adorable-cli-win32-x64"
           PKG_NAME=$(node -p "require('./$SUB_DIR/package.json').name")
-          cp -f dist/adorable.exe "$SUB_DIR/vendor/adorable.exe"
+          rm -rf "$SUB_DIR/vendor"
+          mkdir -p "$SUB_DIR/vendor"
+          cp -r dist/adorable "$SUB_DIR/vendor/"
+          # Windows executable is inside the folder
+          mv "$SUB_DIR/vendor/adorable/adorable.exe" "$SUB_DIR/vendor/adorable.exe"
           CUR=$(node -p "require('./$SUB_DIR/package.json').version")
           echo "Main version: $PKG_VERSION; Subpackage: $PKG_NAME@$CUR"
           npm config set //registry.npmjs.org/:_authToken "${NODE_AUTH_TOKEN}"
