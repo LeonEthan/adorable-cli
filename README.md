@@ -15,7 +15,7 @@
 - 一次性运行（无需全局安装）：
   - `npx -p adorable-cli adorable`
 
-首次运行会提示配置 `API_KEY` 与 `BASE_URL`，保存到 `~/.adorable_config`（KEY=VALUE 格式）。你也可以随时运行 `adorable config` 修改配置。
+首次运行需要配置四个必需变量：`API_KEY`、`BASE_URL`、`MODEL_ID`、`TAVILY_API_KEY`；所有项保存到 `~/.adorable/config`（KEY=VALUE 格式）。你也可以随时运行 `adorable config` 修改配置。
 
 ## 用法
 
@@ -36,14 +36,14 @@
 - 默认模型：`gpt-4o-mini`
 - 支持使用 OpenAI 兼容的 API 服务（例如官方 OpenAI、兼容的第三方或自建服务）。
 - 配置方式：
-  - 运行 `adorable config` 按提示输入，保存到 `~/.adorable_config`
+  - 运行 `adorable config` 按提示输入，保存到 `~/.adorable/config`
   - 或使用环境变量：
-    - `API_KEY` 或 `OPENAI_API_KEY`
-    - `BASE_URL` 或 `OPENAI_BASE_URL`
-    - `TAVILY_API_KEY`（可选，用于提升网页检索质量）
-    - `ADORABLE_MODEL_ID`（可选，覆盖默认模型）
+    - `API_KEY` 或 `OPENAI_API_KEY`（必选）
+    - `BASE_URL` 或 `OPENAI_BASE_URL`（必选）
+    - `TAVILY_API_KEY`（必选，用于网页检索）
+    - `ADORABLE_MODEL_ID`（必选；配置文件中的 `MODEL_ID` 会映射到该环境变量）
 
-示例配置文件（`~/.adorable_config`）：
+示例配置文件（`~/.adorable/config`）：
 
 ```
 API_KEY=sk-xxxx
@@ -58,10 +58,10 @@ MODEL_ID=gpt-4o-mini
 
 - 推理与规划：`ReasoningTools`（结构化推理、计划步骤）
 - 计算校验：`CalculatorTools`（数值计算与结果校验）
-- 网页检索：`TavilyTools`（联网检索，建议设置 `TAVILY_API_KEY`）
+- 网页检索：`TavilyTools`（联网检索，需要设置 `TAVILY_API_KEY`）
 - 网页抓取：`Crawl4aiTools`（访问网址并抽取内容）
 - 文件操作：`FileTools`（搜索/读取/写入文件；作用域限定为启动目录 `cwd`）
-- 记忆存储：`MemoryTools` + `SqliteDb`（本地持久化用户记忆，路径：`~/.adorable_memory.db`）
+- 记忆存储：`MemoryTools` + `SqliteDb`（本地持久化用户记忆，路径：`~/.adorable/memory.db`）
 
 CLI 的系统提示（system prompt）在 `src/adorable_cli/prompt.py` 中，并包含“何时使用待办清单（todos）”的规范与示例。复杂任务会在会话中以清单形式进行管理。
 
@@ -126,6 +126,16 @@ python -m adorable_cli.main
 主包 `adorable-cli` 暴露可执行：
 
 - `adorable`、`ador`（都指向同一入口 `bin/adorable.js`）
+
+### 打包产物（onedir）与启动优化
+
+- 为降低冷启动开销，平台子包内的二进制采用 onedir 产物放置于 `vendor/` 下：
+  - 目录结构示例（macOS/Linux）：`vendor/adorable/` 内含可执行 `vendor/adorable/adorable` 及其依赖文件。
+  - Windows：`vendor/adorable/adorable.exe`。
+- Node 入口已兼容目录与单文件两种布局：
+  - 若 `vendor/adorable` 为目录，则执行内部的实际二进制（`adorable` 或 `adorable.exe`）。
+  - 若为单文件布局，则直接执行 `vendor/adorable`（或 `vendor/adorable.exe`）。
+- 采用 onedir 可避免单文件（onefile）每次运行的解压流程，显著减少冷启动等待时间。
 
 ## 常见问题与排错
 
