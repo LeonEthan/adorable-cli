@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 让 setuptools_scm 在 PR 上生成合理的 dev 版本
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build package
+        run: |
+          python -m pip install -U pip build
+          python -m build
+
+      - name: Validate metadata
+        run: |
+          python -m pip install -U twine
+          # Restrict to actual distribution files to avoid directory wildcard issues
+          python -m twine check dist/*.whl dist/*.tar.gz

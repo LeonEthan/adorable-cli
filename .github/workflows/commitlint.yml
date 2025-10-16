@@ -1,0 +1,26 @@
+name: Commitlint
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+  push:
+    branches: ['**']
+
+jobs:
+  commitlint:
+    name: Lint commit messages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run commitlint
+        uses: wagoid/commitlint-github-action@v6
+        with:
+          configFile: commitlint.config.mjs
+          failOnWarnings: false

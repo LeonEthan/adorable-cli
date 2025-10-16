@@ -1,14 +1,15 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "setuptools_scm[toml]>=8.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "adorable-cli"
-version = "0.1.9"
+dynamic = ["version"]
 description = "A simple Agno-based CLI assistant"
 authors = [{ name = "Your Name" }]
 license = "MIT"
 license-files = ["LICENSE"]
+readme = "README.md"
 dependencies = [
     "agno>=2.1.3",
     "rich>=13.0.0",
@@ -33,6 +34,7 @@ where = ["src"]
 
 [tool.ruff]
 line-length = 100
+extend-exclude = ["**/.venv/**", "**/venv/**", "**/env/**", "**/site-packages/**"]
 
 [tool.flake8]
 max-line-length = 100
@@ -43,3 +45,9 @@ max_line_length = 100
 
 [tool.black]
 line-length = 100
+
+[tool.setuptools_scm]
+# 使用 Git 标签自动推导版本（支持 vX.Y.Z 或 X.Y.Z）
+# 可选：配置 dev/local 版本方案（保持默认即可）
+# version_scheme = "guess-next-dev"
+# local_scheme = "node-and-date"
