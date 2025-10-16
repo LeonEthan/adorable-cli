@@ -27,8 +27,9 @@ from adorable_cli.prompt import (
 
 
 
-CONFIG_PATH = Path.home() / ".adorable_config"
-MEM_DB_PATH = Path.home() / ".adorable_memory.db"
+CONFIG_PATH = Path.home() / ".adorable"
+CONFIG_FILE = CONFIG_PATH / "config"
+MEM_DB_PATH = CONFIG_PATH / "memory.db"
 console = Console()
 
 
@@ -88,32 +89,39 @@ def load_env_from_config(cfg: Dict[str, str]) -> None:
 
 
 def ensure_config_interactive() -> Dict[str, str]:
-    if CONFIG_PATH.exists():
-        cfg = parse_kv_file(CONFIG_PATH)
-        load_env_from_config(cfg)
-        return cfg
+    # Ensure configuration directory exists and read existing config if present
+    CONFIG_PATH.mkdir(parents=True, exist_ok=True)
+    cfg: Dict[str, str] = {}
+    if CONFIG_FILE.exists():
+        cfg = parse_kv_file(CONFIG_FILE)
 
-    console.print(Panel(
-        "🔧 Initial setup: please configure API_KEY and BASE_URL.\n"
-        "Optional: TAVILY_API_KEY (for web search) and MODEL_ID.",
-        title="Adorable Setup",
-        border_style="yellow",
-    ))
-    api_key = input("Enter API_KEY: ")
-    base_url = input("Enter BASE_URL: ")
-    model_id = input("Enter MODEL_ID (optional, press Enter to skip): ")
-    tavily_api_key = input("Enter TAVILY_API_KEY (optional, press Enter to skip): ")
+    # Four variables are required: API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY
+    required_keys = ["API_KEY", "BASE_URL", "MODEL_ID", "TAVILY_API_KEY"]
+    missing = [k for k in required_keys if not cfg.get(k, "").strip()]
 
-    cfg: Dict[str, str] = {"API_KEY": api_key.strip(), "BASE_URL": base_url.strip()}
-    if model_id.strip():
-        cfg["MODEL_ID"] = sanitize(model_id)
-    if tavily_api_key.strip():
-        cfg["TAVILY_API_KEY"] = sanitize(tavily_api_key)
+    if missing:
+        console.print(Panel(
+            "🔧 Initial or missing configuration: please provide four required variables: API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY.",
+            title="Adorable Setup",
+            border_style="yellow",
+        ))
 
-    write_kv_file(CONFIG_PATH, cfg)
+        def prompt_required(label: str) -> str:
+            while True:
+                v = input(f"Enter {label}: ").strip()
+                if v:
+                    return sanitize(v)
+                console.print(f"{label} cannot be empty.", style="red")
+
+        for key in required_keys:
+            if not cfg.get(key, "").strip():
+                cfg[key] = prompt_required(key)
+
+        write_kv_file(CONFIG_FILE, cfg)
+        console.print(f"✅ Saved to {CONFIG_FILE}", style="green")
+
+    # Load configuration into environment variables
     load_env_from_config(cfg)
-
-    console.print(f"✅ Saved to {CONFIG_PATH}", style="green")
     return cfg
 
 
@@ -128,15 +136,12 @@ def build_agent():
     # Shared user memory database
     db = SqliteDb(db_file=str(MEM_DB_PATH))
 
-    # Enable Tavily only if API key is provided to avoid first-run crash
-    has_tavily = bool(os.environ.get("TAVILY_API_KEY"))
-
     team_tools = [
         ReasoningTools(),
         # Calculator tools for numerical calculations and verification
         CalculatorTools(),
         # Web tools
-        *( [TavilyTools()] if has_tavily else [] ),
+        TavilyTools(),
         Crawl4aiTools(),
         # Local file operations limited to the launch directory
         FileTools(base_dir=Path.cwd(), all=True),
@@ -163,10 +168,7 @@ def build_agent():
         },
         enable_agentic_state=True,
         add_session_state_to_context=True,
-        # subagents
-        # members=[web_search_subagent],
-        # share_member_interactions=True,
-        # show_members_responses=True,
+        # TODO: subagents/workflow
         # tools
         tools=team_tools,
         # memory
@@ -191,9 +193,9 @@ def print_help():
     help_text.append("  adorable\n")
     help_text.append("  adorable config\n")
     help_text.append("\nNotes:\n", style="bold")
-    help_text.append("  - On first run, you will be prompted to set API_KEY and BASE_URL; you can also set optional MODEL_ID and TAVILY_API_KEY. Config is stored at ~/.adorable_config\n")
+    help_text.append("  - On first run, you must set four required variables: API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY; configuration is stored at ~/.adorable/config\n")
     help_text.append("  - MODEL_ID can be set via `adorable config` (e.g., glm-4-flash)\n")
-    help_text.append("  - TAVILY_API_KEY can be set via `adorable config` to enable web search (Tavily)\n")
+    help_text.append("  - TAVILY_API_KEY is set via `adorable config` to enable web search (Tavily)\n")
     help_text.append("  - Input history is supported; use up/down arrows to recall\n")
     console.print(Panel(help_text, title="Help", border_style="blue"))
 
@@ -203,8 +205,9 @@ def sanitize(val: str) -> str:
 
 
 def run_config() -> int:
-    console.print(Panel("Configure API_KEY and BASE_URL", title="Adorable Config", border_style="yellow"))
-    existing = parse_kv_file(CONFIG_PATH)
+    console.print(Panel("Configure API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY", title="Adorable Config", border_style="yellow"))
+    CONFIG_PATH.mkdir(parents=True, exist_ok=True)
+    existing = parse_kv_file(CONFIG_FILE)
     current_key = existing.get("API_KEY", "")
     current_url = existing.get("BASE_URL", "")
     current_model = existing.get("MODEL_ID", "")
@@ -229,9 +232,9 @@ def run_config() -> int:
     if tavily_api_key.strip():
         new_cfg["TAVILY_API_KEY"] = sanitize(tavily_api_key)
 
-    write_kv_file(CONFIG_PATH, new_cfg)
+    write_kv_file(CONFIG_FILE, new_cfg)
     load_env_from_config(new_cfg)
-    console.print(f"✅ Saved to {CONFIG_PATH}", style="green")
+    console.print(f"✅ Saved to {CONFIG_FILE}", style="green")
     return 0
 
 

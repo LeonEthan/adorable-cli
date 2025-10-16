@@ -15,7 +15,7 @@
 - 一次性运行（无需全局安装）：
   - `npx -p adorable-cli adorable`
 
-首次运行会提示配置 `API_KEY` 与 `BASE_URL`，并可选配置 `TAVILY_API_KEY`、`MODEL_ID`；所有项保存到 `~/.adorable_config`（KEY=VALUE 格式）。你也可以随时运行 `adorable config` 修改配置。
+首次运行需要配置四个必需变量：`API_KEY`、`BASE_URL`、`MODEL_ID`、`TAVILY_API_KEY`；所有项保存到 `~/.adorable/config`（KEY=VALUE 格式）。你也可以随时运行 `adorable config` 修改配置。
 
 ## 用法
 
@@ -36,14 +36,14 @@
 - 默认模型：`gpt-4o-mini`
 - 支持使用 OpenAI 兼容的 API 服务（例如官方 OpenAI、兼容的第三方或自建服务）。
 - 配置方式：
-  - 运行 `adorable config` 按提示输入，保存到 `~/.adorable_config`
+  - 运行 `adorable config` 按提示输入，保存到 `~/.adorable/config`
   - 或使用环境变量：
-    - `API_KEY` 或 `OPENAI_API_KEY`
-    - `BASE_URL` 或 `OPENAI_BASE_URL`
-    - `TAVILY_API_KEY`（可选，用于提升网页检索质量）
-    - `ADORABLE_MODEL_ID`（可选，覆盖默认模型）
+    - `API_KEY` 或 `OPENAI_API_KEY`（必选）
+    - `BASE_URL` 或 `OPENAI_BASE_URL`（必选）
+    - `TAVILY_API_KEY`（必选，用于网页检索）
+    - `ADORABLE_MODEL_ID`（必选；配置文件中的 `MODEL_ID` 会映射到该环境变量）
 
-示例配置文件（`~/.adorable_config`）：
+示例配置文件（`~/.adorable/config`）：
 
 ```
 API_KEY=sk-xxxx
@@ -58,10 +58,10 @@ MODEL_ID=gpt-4o-mini
 
 - 推理与规划：`ReasoningTools`（结构化推理、计划步骤）
 - 计算校验：`CalculatorTools`（数值计算与结果校验）
-- 网页检索：`TavilyTools`（联网检索，建议设置 `TAVILY_API_KEY`）
+- 网页检索：`TavilyTools`（联网检索，需要设置 `TAVILY_API_KEY`）
 - 网页抓取：`Crawl4aiTools`（访问网址并抽取内容）
 - 文件操作：`FileTools`（搜索/读取/写入文件；作用域限定为启动目录 `cwd`）
-- 记忆存储：`MemoryTools` + `SqliteDb`（本地持久化用户记忆，路径：`~/.adorable_memory.db`）
+- 记忆存储：`MemoryTools` + `SqliteDb`（本地持久化用户记忆，路径：`~/.adorable/memory.db`）
 
 CLI 的系统提示（system prompt）在 `src/adorable_cli/prompt.py` 中，并包含“何时使用待办清单（todos）”的规范与示例。复杂任务会在会话中以清单形式进行管理。
 
