@@ -93,11 +93,23 @@ def ensure_config_interactive() -> Dict[str, str]:
         load_env_from_config(cfg)
         return cfg
 
-    console.print(Panel("🔧 Initial setup: please configure API_KEY and BASE_URL.", title="Adorable Setup", border_style="yellow"))
+    console.print(Panel(
+        "🔧 Initial setup: please configure API_KEY and BASE_URL.\n"
+        "Optional: TAVILY_API_KEY (for web search) and MODEL_ID.",
+        title="Adorable Setup",
+        border_style="yellow",
+    ))
     api_key = input("Enter API_KEY: ")
     base_url = input("Enter BASE_URL: ")
+    model_id = input("Enter MODEL_ID (optional, press Enter to skip): ")
+    tavily_api_key = input("Enter TAVILY_API_KEY (optional, press Enter to skip): ")
 
-    cfg = {"API_KEY": api_key.strip(), "BASE_URL": base_url.strip()}
+    cfg: Dict[str, str] = {"API_KEY": api_key.strip(), "BASE_URL": base_url.strip()}
+    if model_id.strip():
+        cfg["MODEL_ID"] = sanitize(model_id)
+    if tavily_api_key.strip():
+        cfg["TAVILY_API_KEY"] = sanitize(tavily_api_key)
+
     write_kv_file(CONFIG_PATH, cfg)
     load_env_from_config(cfg)
 
@@ -116,12 +128,15 @@ def build_agent():
     # Shared user memory database
     db = SqliteDb(db_file=str(MEM_DB_PATH))
 
+    # Enable Tavily only if API key is provided to avoid first-run crash
+    has_tavily = bool(os.environ.get("TAVILY_API_KEY"))
+
     team_tools = [
         ReasoningTools(),
         # Calculator tools for numerical calculations and verification
         CalculatorTools(),
-        # Web search tools
-        TavilyTools(),
+        # Web tools
+        *( [TavilyTools()] if has_tavily else [] ),
         Crawl4aiTools(),
         # Local file operations limited to the launch directory
         FileTools(base_dir=Path.cwd(), all=True),
@@ -176,9 +191,9 @@ def print_help():
     help_text.append("  adorable\n")
     help_text.append("  adorable config\n")
     help_text.append("\nNotes:\n", style="bold")
-    help_text.append("  - On first run, you will be prompted to set API_KEY and BASE_URL. They are stored at ~/.adorable_config\n")
+    help_text.append("  - On first run, you will be prompted to set API_KEY and BASE_URL; you can also set optional MODEL_ID and TAVILY_API_KEY. Config is stored at ~/.adorable_config\n")
     help_text.append("  - MODEL_ID can be set via `adorable config` (e.g., glm-4-flash)\n")
-    help_text.append("  - TAVILY_API_KEY can be set via `adorable config` to improve web search quality\n")
+    help_text.append("  - TAVILY_API_KEY can be set via `adorable config` to enable web search (Tavily)\n")
     help_text.append("  - Input history is supported; use up/down arrows to recall\n")
     console.print(Panel(help_text, title="Help", border_style="blue"))
 
