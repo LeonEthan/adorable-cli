@@ -15,7 +15,7 @@
 - 一次性运行（无需全局安装）：
   - `npx -p adorable-cli adorable`
 
-首次运行会提示配置 `API_KEY` 与 `BASE_URL`，保存到 `~/.adorable_config`（KEY=VALUE 格式）。你也可以随时运行 `adorable config` 修改配置。
+首次运行会提示配置 `API_KEY` 与 `BASE_URL`，并可选配置 `TAVILY_API_KEY`、`MODEL_ID`；所有项保存到 `~/.adorable_config`（KEY=VALUE 格式）。你也可以随时运行 `adorable config` 修改配置。
 
 ## 用法
 
