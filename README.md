@@ -1,49 +1,98 @@
-# Adorable CLI
+<div align="center">
 
-一个基于 Agno 的命令行智能体工具，支持交互式对话、计划/执行/验证闭环、多工具协作（网页检索、网页抓取、文件读写、计算、记忆）。通过 NPM 提供跨平台单文件二进制，也支持源码运行。
+# 🐱 Adorable CLI
 
-## 快速开始
+### Command-line Super Agents built on Agno
 
-- 推荐 pipx（独立环境）
-  - `pipx install "git+https://github.com/LeonEthan/adorable-cli.git"`
-  - 安装完成后运行：`adorable` 或 `ador`
-  - 先决条件：`Python >= 3.10`，系统已安装 `git`
+<p align="center">
+  <img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python">
+  <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License">
+  <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
+</p>
 
-- NPM 全局安装并运行：
-  - `npm i -g adorable-cli`
-  - 运行 `adorable` 或 `ador`
-- 一次性运行（无需全局安装）：
-  - `npx -p adorable-cli adorable`
+<p align="center">
+  <a href="#quick-start">Quick Start</a> •
+  <a href="#features">Features</a> •
+  <a href="#usage">Usage</a> •
+  <a href="#build">Build</a> •
+  <a href="#contributing">Contributing</a>
+</p>
 
-首次运行需要配置四个必需变量：`API_KEY`、`BASE_URL`、`MODEL_ID`、`TAVILY_API_KEY`；所有项保存到 `~/.adorable/config`（KEY=VALUE 格式）。你也可以随时运行 `adorable config` 修改配置。
+<p align="center">
+  <a href="README.md"><img src="https://img.shields.io/badge/EN-English-blue" alt="English"></a>
+  <a href="README.zh-CN.md"><img src="https://img.shields.io/badge/🇨🇳_中文-red" alt="中文"></a>
+</p>
 
-## 用法
+</div>
 
-- `adorable`：进入交互式会话（支持 Markdown 输出、流式显示、输入历史上/下箭头回溯），退出指令：`exit`/`quit`/`q`/`bye`
-- `adorable config`：配置 `API_KEY`、`BASE_URL`、`TAVILY_API_KEY`、`MODEL_ID`
-- `adorable --help`：查看帮助
+---
 
-### 示例
+Command-line agent built on Agno. Task-centric interaction: you set goals, the agent drives a "collect → act → verify" loop, and uses a todo list when tasks get complex.
 
-- 问答类：
-  - “帮我总结最近 Python 的新特性并列出示例代码”
-- 多步骤任务：
-  - “从当前项目的 `src` 目录读取代码，生成一份详细的 README 并保存到项目根目录”
-  - 智能体会按“信息收集 → 执行操作 → 验证结果”的流程进行，并在需要时基于待办清单（todos）管理步骤。
+> Supports OpenAI-compatible APIs.
 
-## 模型与配置
+---
 
-- 默认模型：`gpt-4o-mini`
-- 支持使用 OpenAI 兼容的 API 服务（例如官方 OpenAI、兼容的第三方或自建服务）。
-- 配置方式：
-  - 运行 `adorable config` 按提示输入，保存到 `~/.adorable/config`
-  - 或使用环境变量：
-    - `API_KEY` 或 `OPENAI_API_KEY`（必选）
-    - `BASE_URL` 或 `OPENAI_BASE_URL`（必选）
-    - `TAVILY_API_KEY`（必选，用于网页检索）
-    - `ADORABLE_MODEL_ID`（必选；配置文件中的 `MODEL_ID` 会映射到该环境变量）
+<div align="center">
 
-示例配置文件（`~/.adorable/config`）：
+<a id="features"></a>
+## 🧩 Features
+
+</div>
+
+- Interactive sessions with Markdown output and streaming
+- Plan → Execute → Verify loop designed for multi-step tasks
+- Multi-tool orchestration: web search, crawl, file I/O, math, memory
+- Local persistent memory (`~/.adorable/memory.db`) across sessions
+- Simple configuration; supports custom models and compatible API providers
+
+<div align="center">
+
+<a id="quick-start"></a>
+## ⚡ Quick Start
+
+| Method | Command | Best For |
+|:------:|---------|----------|
+| **🚗 auto** | `curl -fsSL https://leonethan.github.io/adorable-cli/install.sh \| bash` | **✅ Recommended** - Linux/macOS |
+| **🐍 pipx** | `pipx install adorable-cli` | **✅ Recommended** - Linux/macOS |
+| **📦 pip** | `pip install adorable-cli` | Traditional Python environments |
+
+</div>
+
+> On first run you will be guided to set `API_KEY`, `BASE_URL`, `MODEL_ID`, `TAVILY_API_KEY` into `~/.adorable/config` (KEY=VALUE). You can run `adorable config` anytime to update.
+
+<div align="center">
+
+<a id="usage"></a>
+## 🚀 Usage
+
+</div>
+
+```
+# Start interactive session
+adorable
+
+# Configure required settings (API_KEY/BASE_URL/MODEL_ID/TAVILY_API_KEY)
+adorable config
+
+# Show help
+adorable --help
+```
+
+Exit keywords: `exit` / `quit` / `q` / `bye`
+
+<div align="center">
+
+## 🔧 Configuration
+
+</div>
+
+- Default model: `gpt-4o-mini`
+- Sources:
+  - Interactive: `adorable config` (writes to `~/.adorable/config`)
+  - Environment: `API_KEY` or `OPENAI_API_KEY`; `BASE_URL` or `OPENAI_BASE_URL`; `TAVILY_API_KEY`; `ADORABLE_MODEL_ID`
+
+Example (`~/.adorable/config`):
 
 ```
 API_KEY=sk-xxxx
@@ -52,107 +101,121 @@ TAVILY_API_KEY=tvly_xxxx
 MODEL_ID=gpt-4o-mini
 ```
 
-说明：若环境变量已设置，运行时也会识别（两者皆可）。
+<div align="center">
 
-## 能力与工具
+## 🧠 Capabilities
 
-- 推理与规划：`ReasoningTools`（结构化推理、计划步骤）
-- 计算校验：`CalculatorTools`（数值计算与结果校验）
-- 网页检索：`TavilyTools`（联网检索，需要设置 `TAVILY_API_KEY`）
-- 网页抓取：`Crawl4aiTools`（访问网址并抽取内容）
-- 文件操作：`FileTools`（搜索/读取/写入文件；作用域限定为启动目录 `cwd`）
-- 记忆存储：`MemoryTools` + `SqliteDb`（本地持久化用户记忆，路径：`~/.adorable/memory.db`）
+</div>
 
-CLI 的系统提示（system prompt）在 `src/adorable_cli/prompt.py` 中，并包含“何时使用待办清单（todos）”的规范与示例。复杂任务会在会话中以清单形式进行管理。
+- Reasoning & planning: `ReasoningTools` (structured reasoning and step planning)
+- Calculation & checks: `CalculatorTools` (numeric operations and validation)
+- Web search: `TavilyTools` (requires `TAVILY_API_KEY`)
+- Web crawling: `Crawl4aiTools` (visit URLs and extract content)
+- File operations: `FileTools` (search/read/write; scope limited to the launch directory `cwd`)
+- Memory storage: `MemoryTools` + `SqliteDb` (`~/.adorable/memory.db`)
 
-## 平台支持
+System prompt and TODO list guidelines: see `src/adorable_cli/prompt.py`.
 
-- 支持：
-  - macOS：`darwin-arm64`、`darwin-x64`
-  - Linux：`linux-x64`
-    - 已在以下发行版验证/推荐：
-      - Ubuntu 20.04/22.04/24.04（x86_64）
-      - Debian 11/12（amd64）
-      - CentOS Stream 8/9（x86_64）
-      - Amazon Linux 2（x86_64）
-  - Windows：`win32-x64`
-- 不支持：
-  - Linux arm64（架构维度不支持；例如 Ubuntu/CentOS on ARM、AWS Graviton、树莓派 64 位）
+<div align="center">
 
-兼容性说明（Linux x64）：
+## 🧪 Example Prompts
 
-- 该二进制依赖系统的 `glibc` 版本。较老发行版可能因 `glibc` 过低导致运行失败；此时请改用“源码运行”方式。
-- 若你的系统不在上述推荐版本列表，但为现代 x64 发行版（如 Arch、Fedora、openSUSE 等），通常也可正常运行；遇到兼容性问题请反馈或使用源码运行。
+</div>
 
-在不支持的平台上运行时，CLI 会提示“不支持当前平台”。
+- "Summarize the latest Python features and provide example code"
+- "Read code from the project's `src` directory and generate a detailed README saved to the repo root"
 
-## 源码运行（Python ≥ 3.10）
+<div align="center">
 
-适用于需要在不支持平台或开发环境下运行：
+## 🛠️ Run from Source (uv/venv)
+
+</div>
+
+Using uv (recommended):
 
 ```
-# 使用 uv（推荐）
-uv venv .venv -p 3.11
-uv pip install -p .venv/bin/python -U pip setuptools wheel
-uv export --format requirements-txt -o requirements.lock.txt
-uv pip sync -p .venv/bin/python requirements.lock.txt
-.venv/bin/python -m adorable_cli.main
-# 或：.venv/bin/python src/adorable_cli/main.py
+uv sync
+uv run -m adorable_cli.main
+# 或：uv run src/adorable_cli/main.py
 ```
 
-不使用 uv 时：
+Note: To pin Python version, use `uv sync -p 3.11`.
+
+Using venv:
 
 ```
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -U pip setuptools wheel
-pip install -r requirements.txt  # 如无锁文件，可直接 pip 安装
+pip install -r requirements.txt
 python -m adorable_cli.main
 ```
 
-## Docker（替代方案）
+<div align="center">
 
-目前仓库未提供官方 Dockerfile。你可在 x64 宿主/容器中按“源码运行”方式执行，确保容器内具备 Python 3.10+、网络与必要环境变量（`API_KEY`、`BASE_URL` 等）。
+<a id="build"></a>
+## 📦 Build & Release
 
-## 发布与构建
+</div>
 
-- 发布工作流仅在推送 `v*` 标签时触发。
-- 平台二进制通过各自的子包发布到 NPM：
-  - `@loenethan/adorable-cli-darwin-arm64`
-  - `@loenethan/adorable-cli-darwin-x64`
-  - `@loenethan/adorable-cli-linux-x64`
-  - `@loenethan/adorable-cli-win32-x64`
+- Entry points: see `pyproject.toml` (`adorable`, `ador`)
+- PyPI release: push `v*` tags or trigger manually; CI builds and publishes
+  - Release command: `git tag vX.Y.Z && git push origin vX.Y.Z`
+- Automated versioning: `release-please` based on Conventional Commits
+  - Common types: `feat:` `fix:` `perf:` `refactor:` `docs:`
+- Local build & install:
+  - `python -m build` (outputs `dist/*.tar.gz` and `dist/*.whl`)
+  - `python -m pip install dist/*.whl`
 
-主包 `adorable-cli` 暴露可执行：
+<div align="center">
 
-- `adorable`、`ador`（都指向同一入口 `bin/adorable.js`）
+<a id="contributing"></a>
+## 🤝 Contributing
 
-### 打包产物（onedir）与启动优化
+</div>
 
-- 为降低冷启动开销，平台子包内的二进制采用 onedir 产物放置于 `vendor/` 下：
-  - 目录结构示例（macOS/Linux）：`vendor/adorable/` 内含可执行 `vendor/adorable/adorable` 及其依赖文件。
-  - Windows：`vendor/adorable/adorable.exe`。
-- Node 入口已兼容目录与单文件两种布局：
-  - 若 `vendor/adorable` 为目录，则执行内部的实际二进制（`adorable` 或 `adorable.exe`）。
-  - 若为单文件布局，则直接执行 `vendor/adorable`（或 `vendor/adorable.exe`）。
-- 采用 onedir 可避免单文件（onefile）每次运行的解压流程，显著减少冷启动等待时间。
+- PRs and issues welcome; follow Conventional Commits so `release-please` can generate changelogs.
+- Dev tips:
+  - Use `pipx` or virtualenv;
+  - Follow `pyproject.toml` style (Ruff/Black, line width `100`).
+  - Run `adorable --help` to quickly validate CLI behavior.
 
-## 常见问题与排错
+<div align="center">
 
-- 二进制未找到：
-  - 请确认安装了主包，并且运行的是受支持的平台；或在源码模式下运行。
-- 鉴权失败/模型不可用：
-  - 检查 `API_KEY`/`BASE_URL` 是否正确；`MODEL_ID` 是否可用。
-- 网页检索质量低：
-  - 设置 `TAVILY_API_KEY`，并在指令中明确检索目标与范围。
-- 不支持的架构：
-  - Linux arm64 不支持。请使用 x64 环境或按“源码运行”方式运行。
+## 💡 FAQ & Troubleshooting
 
-## 隐私与安全
+</div>
 
-- 智能体可能读取/写入当前工作目录下的文件（作用域：启动目录）。请在生产环境谨慎使用，并审核其输出与改动。
-- 本地记忆存储于 `~/.adorable_memory.db`，用于跨会话保留关键信息。若不需要可手动删除该文件。
+- Auth failure / model unavailable:
+  - Check `API_KEY` / `BASE_URL`; ensure `MODEL_ID` is supported
+- Poor search quality:
+  - Set `TAVILY_API_KEY`; be explicit about search goals and scope
+- PEP 668 (system env disallows writes):
+  - Prefer `pipx` to get an isolated, cross-platform CLI environment
 
-## 许可证
+<div align="center">
 
-MIT
+## 🔒 Privacy & Security
+
+</div>
+
+- The agent may read/write files under the current working directory; review changes in production
+- Local memory is stored at `~/.adorable/memory.db`; remove it if not needed
+
+<div align="center">
+
+## 🧭 Developer Guide
+
+</div>
+
+- Style & config: Ruff/Black in `pyproject.toml`, line width `100`
+- CLI entrypoints: `src/adorable_cli/__main__.py`, `src/adorable_cli/main.py`
+- System prompt: `src/adorable_cli/prompt.py`
+
+<div align="center">
+
+## 📜 License
+
+</div>
+
+- MIT

@@ -1,0 +1,44 @@
+{
+  "cornflakes.linter.run": "onSave",
+  "python.linting.enabled": false,
+  "python.linting.flake8Enabled": false,
+  "python.linting.pylintEnabled": false,
+  "python.linting.ignorePatterns": [
+    "**/.venv/**",
+    "**/venv/**",
+    "**/env/**",
+    "**/site-packages/**",
+    "**/.vscode/extensions/**"
+  ],
+  "python.analysis.exclude": [
+    "**/.venv/**",
+    "**/venv/**",
+    "**/env/**",
+    "**/site-packages/**"
+  ],
+  "ruff.configurationPreference": "filesystemFirst",
+  "ruff.exclude": [
+    "**/.venv/**",
+    "**/venv/**",
+    "**/env/**",
+    "**/site-packages/**"
+  ],
+  "[python]": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit"
+    },
+    "editor.defaultFormatter": "charliermarsh.ruff"
+  },
+  "files.exclude": {
+    "**/.venv": true,
+    "**/venv": true,
+    "**/env": true
+  },
+  "search.exclude": {
+    "**/.venv/**": true,
+    "**/venv/**": true,
+    "**/env/**": true
+  }
+}
