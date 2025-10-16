@@ -1,6 +1,6 @@
 {
   "name": "adorable-cli",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Adorable CLI standalone binaries via npm",
   "bin": {
     "adorable": "bin/adorable.js",

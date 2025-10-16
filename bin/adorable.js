@@ -20,7 +20,8 @@ function resolveModulePackageRoot(pkg) {
 }
 
 function resolveLocalPackageRoot(pkg) {
-  const localRoot = path.join(__dirname, "..", "npm", pkg);
+  const pkgName = pkg.split("/").pop();
+  const localRoot = path.join(__dirname, "..", "npm", pkgName);
   return fs.existsSync(localRoot) ? localRoot : null;
 }
 
