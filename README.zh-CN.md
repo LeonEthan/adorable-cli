@@ -1,8 +1,8 @@
 <div align="center">
 
-# 🐱 Adorable CLI
+<img src="assets/adorable-ai-logo.png" alt="adorable.ai logo" width="220" />
 
-### 基于 Agno 的命令行智能体
+# Adorable CLI - 一个强大的命令行智能体助手
 
 <p align="center">
   <a href="#quick-start">快速安装</a> •

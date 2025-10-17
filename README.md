@@ -1,8 +1,8 @@
 <div align="center">
 
-# 🐱 Adorable CLI
+<img src="assets/adorable-ai-logo.png" alt="adorable.ai logo" width="220" />
 
-### Command-line Super Agents built on Agno
+# Adorable CLI - A powerful cli agents assistant
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python">
