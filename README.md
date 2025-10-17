@@ -2,7 +2,7 @@
 
 <img src="assets/adorable-ai-logo.png" alt="adorable.ai logo" width="220" />
 
-# Adorable CLI - A powerful command-line Super Agents
+# Adorable CLI - A powerful cli agents assistant
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python">

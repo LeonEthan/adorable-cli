@@ -2,7 +2,7 @@
 
 <img src="assets/adorable-ai-logo.png" alt="adorable.ai logo" width="220" />
 
-# Adorable CLI - 一个强大的命令行智能体
+# Adorable CLI - 一个强大的命令行智能体助手
 
 <p align="center">
   <a href="#quick-start">快速安装</a> •
