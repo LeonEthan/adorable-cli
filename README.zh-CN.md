@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/adorable-ai-logo.png" alt="adorable.ai logo" width="220" />
+
 # 🐱 Adorable CLI
 
 ### 基于 Agno 的命令行智能体

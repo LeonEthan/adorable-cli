@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/adorable-ai-logo.png" alt="adorable.ai logo" width="220" />
+
 # 🐱 Adorable CLI
 
 ### Command-line Super Agents built on Agno
