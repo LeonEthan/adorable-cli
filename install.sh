@@ -76,19 +76,17 @@ install_pipx_if_needed() {
 }
 
 install_or_upgrade_package() {
-  # 在严格模式下，使用带默认值的参数展开以防未绑定变量
-  local pkg="${PKG_NAME:-adorable-cli}"
-
-  if pipx list 2>/dev/null | grep -q "$pkg"; then
-    log_info "检测到已安装，执行升级： pipx upgrade $pkg"
-    pipx upgrade "$pkg" || {
-      log_warn "升级失败，尝试重新安装（卸载后安装）"
-      pipx uninstall "$pkg" || true
-      pipx install "$pkg"
+  # 使用全局变量 PKG_NAME，避免在 set -u 下局部变量未绑定问题
+  if pipx list 2>/dev/null | grep -q "${PKG_NAME:-adorable-cli}"; then
+    log_info "检测到已安装，执行升级： pipx upgrade ${PKG_NAME:-adorable-cli}"
+    pipx upgrade "${PKG_NAME:-adorable-cli}" || {
+      log_warn "升级失败，尝试重新安装（卸载后安装)"
+      pipx uninstall "${PKG_NAME:-adorable-cli}" || true
+      pipx install "${PKG_NAME:-adorable-cli}"
     }
   else
-    log_info "安装 $pkg（隔离环境，推荐方式）"
-    pipx install "$pkg"
+    log_info "安装 ${PKG_NAME:-adorable-cli}（隔离环境，推荐方式）"
+    pipx install "${PKG_NAME:-adorable-cli}"
   fi
 }
 
