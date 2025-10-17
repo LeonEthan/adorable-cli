@@ -53,8 +53,8 @@ Command-line agent built on Agno. Task-centric interaction: you set goals, the a
 
 | Method | Command | Best For |
 |:------:|---------|----------|
-| **🚗 auto** | `curl -fsSL https://leonethan.github.io/adorable-cli/install.sh \| bash` | **✅ Recommended** - Linux/macOS |
 | **🐍 pipx** | `pipx install adorable-cli` | **✅ Recommended** - Linux/macOS |
+| **🚗 auto** | `curl -fsSL https://leonethan.github.io/adorable-cli/install.sh \| bash` | non-programmer - Linux/macOS |
 | **📦 pip** | `pip install adorable-cli` | Traditional Python environments |
 
 </div>
