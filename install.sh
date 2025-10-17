@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# 默认安装的包名，可通过环境变量覆盖：PKG_NAME="your-package"
+PKG_NAME=${PKG_NAME:-adorable-cli}
+
 log_info() { printf "\033[1;34m[i]\033[0m %s\n" "$*"; }
 log_warn() { printf "\033[1;33m[!]\033[0m %s\n" "$*"; }
 log_err()  { printf "\033[1;31m[x]\033[0m %s\n" "$*"; }
@@ -73,7 +76,8 @@ install_pipx_if_needed() {
 }
 
 install_or_upgrade_package() {
-  local pkg="adorable-cli"
+  # 在严格模式下，使用带默认值的参数展开以防未绑定变量
+  local pkg="${PKG_NAME:-adorable-cli}"
 
   if pipx list 2>/dev/null | grep -q "$pkg"; then
     log_info "检测到已安装，执行升级： pipx upgrade $pkg"
@@ -110,6 +114,13 @@ main() {
 
   log_info "安装或升级 adorable-cli"
   install_or_upgrade_package
+
+  # 显示已安装版本信息（优先使用命令名，其次使用 pipx run）
+  if command -v adorable >/dev/null 2>&1; then
+    log_info "已安装版本：$(adorable --version || echo '未知')"
+  else
+    log_info "已安装版本：$(pipx run "${PKG_NAME:-adorable-cli}" --version || echo '未知')"
+  fi
 
   post_install_hint
 }
