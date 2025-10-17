@@ -13,7 +13,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # 让 setuptools_scm 在 PR 上生成合理的 dev 版本
+          fetch-depth: 0  # Allow setuptools_scm to generate sensible dev versions on PRs
 
       - name: Setup Python
         uses: actions/setup-python@v5
