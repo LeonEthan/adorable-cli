@@ -43,8 +43,8 @@
 
   | 方法 | 命令 | 适用场景 |
   |---|---|---|
-  | **🚗 一键** | `curl -fsSL https://leonethan.github.io/adorable-cli/install.sh \| bash` | **✅ 推荐** - Linux/macOS |
   | **🐍 pipx** | `pipx install adorable-cli` | **✅ 推荐** - Linux/macOS |
+  | **🚗 一键** | `curl -fsSL https://leonethan.github.io/adorable-cli/install.sh \| bash` | 非程序员 - Linux/macOS |
   | **📦 pip** | `pip install adorable-cli` | 传统 Python 环境 |
 </div>
 

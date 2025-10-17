@@ -5,8 +5,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "adorable-cli"
 dynamic = ["version"]
-description = "A simple Agno-based CLI assistant"
-authors = [{ name = "Your Name" }]
+description = "A powerful CLI super agent"
+authors = [{ name = "LeonEthan", email = "czlbou2012@gmail.com" }]
 license = "MIT"
 license-files = ["LICENSE"]
 readme = "README.md"
@@ -38,7 +38,7 @@ extend-exclude = ["**/.venv/**", "**/venv/**", "**/env/**", "**/site-packages/**
 
 [tool.flake8]
 max-line-length = 100
-extend-ignore = ["E203", "W503"]  # 与 Black 常见兼容
+extend-ignore = ["E203", "W503"]  # Common compatibility with Black
 
 [tool.pycodestyle]
 max_line_length = 100
@@ -47,7 +47,7 @@ max_line_length = 100
 line-length = 100
 
 [tool.setuptools_scm]
-# 使用 Git 标签自动推导版本（支持 vX.Y.Z 或 X.Y.Z）
-# 可选：配置 dev/local 版本方案（保持默认即可）
+# Derive version from Git tags (supports vX.Y.Z or X.Y.Z)
+# Optional: configure dev/local version scheme (default is fine)
 # version_scheme = "guess-next-dev"
 # local_scheme = "node-and-date"

@@ -1,31 +1,26 @@
+import asyncio
+import logging
 import os
 import sys
-import asyncio
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as pkg_version
 from pathlib import Path
 from typing import Dict
-import logging
 
-from agno.team import Team
 from agno.agent import Agent
-from agno.models.openai import OpenAILike
 from agno.db.sqlite import SqliteDb
-from agno.tools.tavily import TavilyTools
-from agno.tools.crawl4ai import Crawl4aiTools
+from agno.models.openai import OpenAILike
 from agno.tools.calculator import CalculatorTools
-from agno.tools.reasoning import ReasoningTools
+from agno.tools.crawl4ai import Crawl4aiTools
 from agno.tools.file import FileTools
 from agno.tools.memory import MemoryTools
-
+from agno.tools.reasoning import ReasoningTools
+from agno.tools.tavily import TavilyTools
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
-from adorable_cli.prompt import (
-    MAIN_AGENT_DESCRIPTION,
-    MAIN_AGENT_INSTRUCTIONS,
-)
-
-
+from adorable_cli.prompt import MAIN_AGENT_DESCRIPTION, MAIN_AGENT_INSTRUCTIONS
 
 CONFIG_PATH = Path.home() / ".adorable"
 CONFIG_FILE = CONFIG_PATH / "config"
@@ -60,7 +55,7 @@ def parse_kv_file(path: Path) -> Dict[str, str]:
         if "=" in line:
             k, v = line.split("=", 1)
             # Strip common quotes/backticks users may include
-            cfg[k.strip()] = v.strip().strip('"').strip("'").strip('`')
+            cfg[k.strip()] = v.strip().strip('"').strip("'").strip("`")
     return cfg
 
 
@@ -100,11 +95,13 @@ def ensure_config_interactive() -> Dict[str, str]:
     missing = [k for k in required_keys if not cfg.get(k, "").strip()]
 
     if missing:
-        console.print(Panel(
-            "🔧 Initial or missing configuration: please provide four required variables: API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY.",
-            title="Adorable Setup",
-            border_style="yellow",
-        ))
+        console.print(
+            Panel(
+                "🔧 Initial or missing configuration: please provide four required variables: API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY.",
+                title="Adorable Setup",
+                border_style="yellow",
+            )
+        )
 
         def prompt_required(label: str) -> str:
             while True:
@@ -187,25 +184,47 @@ def print_help():
     help_text.append("Adorable CLI - Agno-based command-line assistant\n", style="bold cyan")
     help_text.append("\nUsage:\n", style="bold")
     help_text.append("  adorable               Enter interactive chat mode\n")
-    help_text.append("  adorable config        Configure API_KEY, BASE_URL, TAVILY_API_KEY and MODEL_ID\n")
+    help_text.append(
+        "  adorable config        Configure API_KEY, BASE_URL, TAVILY_API_KEY and MODEL_ID\n"
+    )
     help_text.append("  adorable --help        Show help information\n")
     help_text.append("\nExamples:\n", style="bold")
     help_text.append("  adorable\n")
     help_text.append("  adorable config\n")
     help_text.append("\nNotes:\n", style="bold")
-    help_text.append("  - On first run, you must set four required variables: API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY; configuration is stored at ~/.adorable/config\n")
+    help_text.append(
+        "  - On first run, you must set four required variables: API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY; configuration is stored at ~/.adorable/config\n"
+    )
     help_text.append("  - MODEL_ID can be set via `adorable config` (e.g., glm-4-flash)\n")
-    help_text.append("  - TAVILY_API_KEY is set via `adorable config` to enable web search (Tavily)\n")
+    help_text.append(
+        "  - TAVILY_API_KEY is set via `adorable config` to enable web search (Tavily)\n"
+    )
     help_text.append("  - Input history is supported; use up/down arrows to recall\n")
     console.print(Panel(help_text, title="Help", border_style="blue"))
 
 
+def print_version() -> int:
+    try:
+        ver = pkg_version("adorable-cli")
+        print(f"adorable-cli {ver}")
+    except PackageNotFoundError:
+        # Fallback when distribution metadata is unavailable (e.g., dev runs)
+        print("adorable-cli (version unknown)")
+    return 0
+
+
 def sanitize(val: str) -> str:
-    return val.strip().strip('"').strip("'").strip('`')
+    return val.strip().strip('"').strip("'").strip("`")
 
 
 def run_config() -> int:
-    console.print(Panel("Configure API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY", title="Adorable Config", border_style="yellow"))
+    console.print(
+        Panel(
+            "Configure API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY",
+            title="Adorable Config",
+            border_style="yellow",
+        )
+    )
     CONFIG_PATH.mkdir(parents=True, exist_ok=True)
     existing = parse_kv_file(CONFIG_FILE)
     current_key = existing.get("API_KEY", "")
@@ -239,10 +258,13 @@ def run_config() -> int:
 
 
 async def run_interactive_async(agent) -> int:
-    console.print(Panel(
-        "🤖 Adorable started. Type exit or exit() to quit.",
-        title="Adorable",
-        border_style="green"))
+    console.print(
+        Panel(
+            "🤖 Adorable started. Type exit or exit() to quit.",
+            title="Adorable",
+            border_style="green",
+        )
+    )
     await agent.acli_app(
         stream=True,
         markdown=True,
@@ -256,6 +278,10 @@ def run_interactive(agent) -> int:
 
 
 def main() -> int:
+    # Version handling
+    if any(arg in ("-V", "--version") for arg in sys.argv[1:]):
+        return print_version()
+
     # Help handling
     if any(arg in ("-h", "--help") for arg in sys.argv[1:]):
         print_help()
@@ -263,6 +289,8 @@ def main() -> int:
 
     # Subcommand handling
     args = [a for a in sys.argv[1:] if not a.startswith("-")]
+    if len(args) >= 1 and args[0].lower() == "version":
+        return print_version()
     if len(args) >= 1 and args[0].lower() == "config":
         return run_config()
 
