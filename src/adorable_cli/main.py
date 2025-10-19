@@ -16,8 +16,11 @@ from agno.tools.file import FileTools
 from agno.tools.memory import MemoryTools
 from agno.tools.reasoning import ReasoningTools
 from agno.tools.tavily import TavilyTools
-from rich.console import Console
+from rich.align import Align
+from rich.columns import Columns
+from rich.console import Console, Group
 from rich.panel import Panel
+from rich.rule import Rule
 from rich.text import Text
 
 from adorable_cli.prompt import MAIN_AGENT_DESCRIPTION, MAIN_AGENT_INSTRUCTIONS
@@ -199,7 +202,7 @@ def print_help():
     help_text.append(
         "  - TAVILY_API_KEY is set via `adorable config` to enable web search (Tavily)\n"
     )
-    help_text.append("  - Input history is supported; use up/down arrows to recall\n")
+    help_text.append("  - Press Enter to submit; Ctrl+C/Ctrl+D to exit\n")
     console.print(Panel(help_text, title="Help", border_style="blue"))
 
 
@@ -258,18 +261,77 @@ def run_config() -> int:
 
 
 async def run_interactive_async(agent) -> int:
+    # Claude Code 风格欢迎界面：两栏布局 + 简洁像素图标
+    pixel_sprite = r"""
+[sandy_brown]      ████          ████      [/sandy_brown]
+[sandy_brown]      ██[/sandy_brown][navajo_white1]██[/navajo_white1][sandy_brown]██      ██[/sandy_brown][navajo_white1]██[/navajo_white1][sandy_brown]██[/sandy_brown]
+[sandy_brown]      ██[/sandy_brown][navajo_white1]████[/navajo_white1][sandy_brown]██████[/sandy_brown][navajo_white1]████[/navajo_white1][sandy_brown]██[/sandy_brown]
+[sandy_brown]    ██[/sandy_brown][navajo_white1]██████████████████[/navajo_white1][sandy_brown]██[/sandy_brown]
+[sandy_brown]    ██[/sandy_brown][navajo_white1]████[/navajo_white1][black]██[/black][navajo_white1]██████[/navajo_white1][black]██[/black][navajo_white1]████[/navajo_white1][sandy_brown]██[/sandy_brown]
+[sandy_brown]    ██[/sandy_brown][navajo_white1]██████████████████[/navajo_white1][sandy_brown]██[/sandy_brown]
+[sandy_brown]    ████[/sandy_brown][navajo_white1]██████████████[/navajo_white1][sandy_brown]████[/sandy_brown]
+[sandy_brown]        ██████████████[/sandy_brown]
+"""
+
+    # 左侧：仅显示更大的像素猫图（保留更多行）
+    try:
+        ver = pkg_version("adorable-cli")
+    except PackageNotFoundError:
+        ver = "version unknown"
+    model_id = os.environ.get("ADORABLE_MODEL_ID", "gpt-4o-mini")
+    cwd = str(Path.cwd())
+    cfg_path = str(CONFIG_FILE)
+
+    left_group = Group(
+        Align.center(Text("Welcome use Adorable CLI!", style="bold white")),
+        Align.center(Text.from_markup(pixel_sprite)),
+    )
+
+    # 右侧：入门提示 + 最近活动（保持图片中的排版）
+    right_group = Group(
+        Text("Tips for getting started", style="bold dark_orange"),
+        Rule(style="grey37"),
+        Text("• 运行 `uv run ador` 进入交互模式"),
+        Text("• 运行 `uv run adorable config` 配置 API 与模型"),
+        Text("• 按 Enter 提交，Ctrl+C/Ctrl+D 退出", style="grey58"),
+        # Text("\nRecent activity", style="bold dark_orange"),
+        # Rule(style="grey37"),
+        # Text("No recent activity", style="grey58"),
+        Text("\nConfig", style="bold dark_orange"),
+        Rule(style="grey37"),
+        Text(f"Adorable CLI {ver} • Model {model_id}", style="grey58"),
+        Text(f"{cwd}", style="grey58"),
+    )
+
     console.print(
         Panel(
-            "🤖 Adorable started. Type exit or exit() to quit.",
+            Columns([left_group, right_group], equal=True, expand=True),
             title="Adorable",
-            border_style="green",
+            border_style="dark_orange",
         )
     )
-    await agent.acli_app(
-        stream=True,
-        markdown=True,
-        exit_on=["exit", "exit()", "quit", "q", "bye"],
-    )
+
+    # 使用标准输入交互（回退至未引入 prompt_toolkit 的版本）
+    exit_on = ["exit", "exit()", "quit", "q", "bye"]
+    while True:
+        try:
+            user_input = input("> ").strip()
+        except (KeyboardInterrupt, EOFError):
+            console.print("👋 Bye!", style="yellow")
+            return 0
+        if not user_input:
+            continue
+        if user_input.lower() in exit_on:
+            break
+        try:
+            # 流式渲染：直接输出（取消 prompt_toolkit stdout 补丁）
+            await agent.aprint_response(user_input, stream=True, markdown=True)
+        except Exception as e:
+            console.print(f"[yellow]Streaming error, fallback to non-stream:[/yellow] {e}")
+            try:
+                await agent.aprint_response(user_input, stream=False, markdown=True)
+            except Exception as e2:
+                console.print(f"[red]Error:[/red] {e2}")
     return 0
 
 
