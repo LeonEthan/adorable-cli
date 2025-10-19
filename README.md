@@ -62,6 +62,17 @@ Command-line agent built on Agno. Task-centric interaction: you set goals, the a
 > On first run you will be guided to set `API_KEY`, `BASE_URL`, `MODEL_ID`, `TAVILY_API_KEY` into `~/.adorable/config` (KEY=VALUE). You can run `adorable config` anytime to update.
 
 <div align="center">
+  <a id="platform"></a>
+  
+  ## 🖥 Platform Support
+</div>
+
+- OS: macOS, Linux x86_64
+- Arch: `x86_64`; Linux `arm64` currently not supported
+- Python: `>= 3.10` (recommended `3.11`)
+- Linux glibc: `>= 2.28` (e.g., Debian 12, Ubuntu 22.04+, CentOS Stream 9)
+
+<div align="center">
 
 <a id="usage"></a>
 ## 🚀 Usage
@@ -71,12 +82,16 @@ Command-line agent built on Agno. Task-centric interaction: you set goals, the a
 ```
 # Start interactive session
 adorable
+# Or use alias
+ador
 
 # Configure required settings (API_KEY/BASE_URL/MODEL_ID/TAVILY_API_KEY)
 adorable config
 
 # Show help
 adorable --help
+# Alias help
+ador --help
 ```
 
 Exit keywords: `exit` / `quit` / `q` / `bye`
@@ -192,6 +207,8 @@ python -m adorable_cli.main
   - Set `TAVILY_API_KEY`; be explicit about search goals and scope
 - PEP 668 (system env disallows writes):
   - Prefer `pipx` to get an isolated, cross-platform CLI environment
+- Linux arm64 currently not supported:
+  - Use `x86_64` or macOS; or run via WSL2
 
 <div align="center">
 
