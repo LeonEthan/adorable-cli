@@ -8,7 +8,6 @@ resolution-markers = [
 
 [[package]]
 name = "adorable-cli"
-version = "0.1.9"
 source = { editable = "." }
 dependencies = [
     { name = "agno" },
