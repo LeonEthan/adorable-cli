@@ -51,6 +51,17 @@
 > 首次运行会引导配置四个变量：`API_KEY`、`BASE_URL`、`MODEL_ID`、`TAVILY_API_KEY`，保存到 `~/.adorable/config`（KEY=VALUE）。随时可运行 `adorable config` 修改。
 
 <div align="center">
+  <a id="platform"></a>
+  
+  ## 🖥 平台支持
+</div>
+
+- 系统：macOS、Linux x86_64
+- 架构：`x86_64`；Linux `arm64` 暂不支持
+- Python：`>= 3.10`（建议 `3.11`）
+- Linux glibc：`>= 2.28`（例如 Debian 12、Ubuntu 22.04+、CentOS Stream 9）
+
+<div align="center">
   <a id="usage"></a>
   
   ## 🚀 用法速览
@@ -59,12 +70,16 @@
 ```
 # 进入交互式会话
 adorable
+# 或使用别名
+ador
 
 # 配置四个必需项（API_KEY/BASE_URL/MODEL_ID/TAVILY_API_KEY）
 adorable config
 
 # 查看帮助
 adorable --help
+# 别名帮助
+ador --help
 ```
 
 退出指令：`exit` / `quit` / `q` / `bye`
@@ -182,6 +197,8 @@ adorable --help
   - 设置 `TAVILY_API_KEY`；在指令中明确检索目标与范围
 - PEP 668（系统环境不允许写入）：
   - 使用 `pipx` 安装以获得隔离环境；这是跨平台 CLI 的最佳实践
+- Linux arm64 暂不支持：
+  - 请在 `x86_64` 架构或 macOS 上使用；或通过 WSL2 运行
 
 <div align="center">
   <a id="privacy"></a>
