@@ -36,13 +36,6 @@ where = ["src"]
 line-length = 100
 extend-exclude = ["**/.venv/**", "**/venv/**", "**/env/**", "**/site-packages/**"]
 
-[tool.flake8]
-max-line-length = 100
-extend-ignore = ["E203", "W503"]  # Common compatibility with Black
-
-[tool.pycodestyle]
-max_line_length = 100
-
 [tool.black]
 line-length = 100
 
