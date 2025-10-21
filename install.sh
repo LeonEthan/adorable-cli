@@ -135,6 +135,32 @@ install_or_upgrade_adorable_cli() {
 }
 
 # ======================
+# 6. Warm up adorable-cli to avoid cold-start slowness
+# ======================
+warmup_adorable_cli() {
+    yellow "🔥 Warming up adorable-cli (--help)..."
+
+    # Ensure PATH contains pipx-installed binaries
+    export PATH="$HOME/.local/bin:$PATH"
+
+    if command -v adorable >/dev/null 2>&1; then
+        local start_ts end_ts dur
+        start_ts=$(date +%s)
+        if adorable --help >/dev/null 2>&1; then
+            end_ts=$(date +%s)
+            dur=$((end_ts - start_ts))
+            green "✅ Warm-up complete in ${dur}s"
+        else
+            yellow "⚠️  Warm-up failed via 'adorable'; trying 'pipx run'"
+            pipx run adorable-cli --help >/dev/null 2>&1 || yellow "⚠️  Warm-up via pipx run failed (ignored)"
+        fi
+    else
+        yellow "⚠️  'adorable' not found on PATH; trying 'pipx run'"
+        pipx run adorable-cli --help >/dev/null 2>&1 || yellow "⚠️  Warm-up via pipx run failed (ignored)"
+    fi
+}
+
+# ======================
 # Main flow
 # ======================
 main() {
@@ -158,6 +184,9 @@ main() {
 
     # 4. Install or upgrade adorable-cli
     install_or_upgrade_adorable_cli
+
+    # 5. Warm up adorable-cli to reduce user's first-run latency
+    warmup_adorable_cli
 
     green "🎉 adorable-cli installed or upgraded successfully!"
     yellow "💡 Run the following commands to apply the environment (or reopen your terminal):"
