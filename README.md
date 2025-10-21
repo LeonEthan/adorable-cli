@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="#quick-start">Quick Start</a> •
+  <a href="#quick-install">Quick Install</a> •
   <a href="#features">Features</a> •
   <a href="#usage">Usage</a> •
   <a href="#build">Build</a> •
@@ -48,13 +48,13 @@ Command-line agent built on Agno. Task-centric interaction: you set goals, the a
 
 <div align="center">
 
-<a id="quick-start"></a>
-## ⚡ Quick Start
+<a id="quick-install"></a>
+## ⚡ Quick Install
 
 | Method | Command | Best For |
 |:------:|---------|----------|
-| **🐍 pipx** | `pipx install adorable-cli` | **✅ Recommended** - Linux/macOS |
-| **🚗 auto** | `curl -fsSL https://leonethan.github.io/adorable-cli/install.sh \| bash` | non-programmer - Linux/macOS |
+| **🚗 auto** | `curl -fsSL https://leonethan.github.io/adorable-cli/install.sh \| bash` | **✅ Recommended** - Linux/macOS |
+| **🐍 pipx** | `pipx install adorable-cli` | Isolated CLI envs - Linux/macOS |
 | **📦 pip** | `pip install adorable-cli` | Traditional Python environments |
 
 </div>
