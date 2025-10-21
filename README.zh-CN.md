@@ -5,7 +5,7 @@
 # Adorable CLI - 一个强大的命令行智能体助手
 
 <p align="center">
-  <a href="#quick-start">快速安装</a> •
+  <a href="#quick-install">快速安装</a> •
   <a href="#features">特性</a> •
   <a href="#usage">用法</a> •
   <a href="#build">构建</a> •
@@ -37,14 +37,14 @@
 - 简单配置即用，支持自定义模型与兼容服务
 
 <div align="center">
-  <a id="quick-start"></a>
+  <a id="quick-install"></a>
   
   ## ⚡ 快速安装
 
   | 方法 | 命令 | 适用场景 |
   |---|---|---|
-  | **🐍 pipx** | `pipx install adorable-cli` | **✅ 推荐** - Linux/macOS |
-  | **🚗 一键** | `curl -fsSL https://leonethan.github.io/adorable-cli/install.sh \| bash` | 非程序员 - Linux/macOS |
+  | **🚗 一键** | `curl -fsSL https://leonethan.github.io/adorable-cli/install.sh \| bash` | **✅ 首推** - Linux/macOS |
+  | **🐍 pipx** | `pipx install adorable-cli` | 隔离 CLI 环境 - Linux/macOS |
   | **📦 pip** | `pip install adorable-cli` | 传统 Python 环境 |
 </div>
 
