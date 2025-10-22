@@ -5,7 +5,7 @@ import sys
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as pkg_version
 from pathlib import Path
-from typing import Dict
+
 
 from agno.agent import Agent
 from agno.db.sqlite import SqliteDb
@@ -24,6 +24,7 @@ from rich.rule import Rule
 from rich.text import Text
 
 from adorable_cli.prompt import MAIN_AGENT_DESCRIPTION, MAIN_AGENT_INSTRUCTIONS
+from adorable_cli.tools import create_secure_tools
 
 CONFIG_PATH = Path.home() / ".adorable"
 CONFIG_FILE = CONFIG_PATH / "config"
@@ -47,8 +48,8 @@ def configure_logging() -> None:
         pass
 
 
-def parse_kv_file(path: Path) -> Dict[str, str]:
-    cfg: Dict[str, str] = {}
+def parse_kv_file(path: Path) -> dict[str, str]:
+    cfg: dict[str, str] = {}
     if not path.exists():
         return cfg
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -62,12 +63,12 @@ def parse_kv_file(path: Path) -> Dict[str, str]:
     return cfg
 
 
-def write_kv_file(path: Path, data: Dict[str, str]) -> None:
+def write_kv_file(path: Path, data: dict[str, str]) -> None:
     lines = [f"{k}={v}" for k, v in data.items()]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def load_env_from_config(cfg: Dict[str, str]) -> None:
+def load_env_from_config(cfg: dict[str, str]) -> None:
     # Persist requested env vars
     api_key = cfg.get("API_KEY", "")
     base_url = cfg.get("BASE_URL", "")
@@ -86,10 +87,10 @@ def load_env_from_config(cfg: Dict[str, str]) -> None:
         os.environ.setdefault("ADORABLE_MODEL_ID", model_id)
 
 
-def ensure_config_interactive() -> Dict[str, str]:
+def ensure_config_interactive() -> dict[str, str]:
     # Ensure configuration directory exists and read existing config if present
     CONFIG_PATH.mkdir(parents=True, exist_ok=True)
-    cfg: Dict[str, str] = {}
+    cfg: dict[str, str] = {}
     if CONFIG_FILE.exists():
         cfg = parse_kv_file(CONFIG_FILE)
 
@@ -147,6 +148,8 @@ def build_agent():
         FileTools(base_dir=Path.cwd(), all=True),
         # User memory tools
         MemoryTools(db=db),
+        # New: Secure execution tools - extended from Agno native tools
+        *create_secure_tools(base_dir=Path.cwd()),
     ]
 
     main_agent = Agent(
@@ -202,6 +205,7 @@ def print_help():
     help_text.append(
         "  - TAVILY_API_KEY is set via `adorable config` to enable web search (Tavily)\n"
     )
+    help_text.append("  - Security: optional ~/.adorable/security.yaml overrides defaults; if absent, built-in safe defaults are used\n")
     help_text.append("  - Press Enter to submit; Ctrl+C/Ctrl+D to exit\n")
     console.print(Panel(help_text, title="Help", border_style="blue"))
 
@@ -261,7 +265,7 @@ def run_config() -> int:
 
 
 async def run_interactive_async(agent) -> int:
-    # Claude Code 风格欢迎界面：两栏布局 + 简洁像素图标
+    # Claude Code-style welcome UI: two-column layout + simple pixel icon
     pixel_sprite = r"""
 [sandy_brown]      ████          ████      [/sandy_brown]
 [sandy_brown]      ██[/sandy_brown][navajo_white1]██[/navajo_white1][sandy_brown]██      ██[/sandy_brown][navajo_white1]██[/navajo_white1][sandy_brown]██[/sandy_brown]
@@ -273,7 +277,7 @@ async def run_interactive_async(agent) -> int:
 [sandy_brown]        ██████████████[/sandy_brown]
 """
 
-    # 左侧：仅显示更大的像素猫图（保留更多行）
+    # Left panel: show larger pixel cat image (preserve more lines)
     try:
         ver = pkg_version("adorable-cli")
     except PackageNotFoundError:
@@ -287,13 +291,13 @@ async def run_interactive_async(agent) -> int:
         Align.center(Text.from_markup(pixel_sprite)),
     )
 
-    # 右侧：入门提示 + 最近活动（保持图片中的排版）
+    # Right panel: getting started tips + recent activity (preserve layout)
     right_group = Group(
         Text("Tips for getting started", style="bold dark_orange"),
         Rule(style="grey37"),
-        Text("• 运行 `uv run ador` 进入交互模式"),
-        Text("• 运行 `uv run adorable config` 配置 API 与模型"),
-        Text("• 按 Enter 提交，Ctrl+C/Ctrl+D 退出", style="grey58"),
+        Text("• Run `uv run ador` to enter interactive mode"),
+        Text("• Run `uv run adorable config` to configure API and model"),
+        Text("• Press Enter to submit; Ctrl+C/Ctrl+D to exit", style="grey58"),
         # Text("\nRecent activity", style="bold dark_orange"),
         # Rule(style="grey37"),
         # Text("No recent activity", style="grey58"),
@@ -311,7 +315,7 @@ async def run_interactive_async(agent) -> int:
         )
     )
 
-    # 使用标准输入交互（回退至未引入 prompt_toolkit 的版本）
+    # Use standard input for interaction (fallback before prompt_toolkit)
     exit_on = ["exit", "exit()", "quit", "q", "bye"]
     while True:
         try:
@@ -324,7 +328,7 @@ async def run_interactive_async(agent) -> int:
         if user_input.lower() in exit_on:
             break
         try:
-            # 流式渲染：直接输出（取消 prompt_toolkit stdout 补丁）
+            # Streamed rendering: direct output (without prompt_toolkit stdout patch)
             await agent.aprint_response(user_input, stream=True, markdown=True)
         except Exception as e:
             console.print(f"[yellow]Streaming error, fallback to non-stream:[/yellow] {e}")

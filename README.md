@@ -131,6 +131,9 @@ MODEL_ID=gpt-4o-mini
 
 System prompt and TODO list guidelines: see `src/adorable_cli/prompt.py`.
 
+Secure execution tools: `SecurePythonTools` and `SecureShellTools` are implemented via composition over Agno tools and return `str` outputs.
+Interfaces: `execute_python_code(code: str, variable_to_return: Optional[str] = None) -> str`, `run_shell_command(command: str, tail: int = 100) -> str`.
+
 <div align="center">
 
 ## 🧪 Example Prompts
@@ -218,6 +221,7 @@ python -m adorable_cli.main
 
 - The agent may read/write files under the current working directory; review changes in production
 - Local memory is stored at `~/.adorable/memory.db`; remove it if not needed
+- Security config is optional at `~/.adorable/security.yaml`; if absent, built-in safe defaults are used. Create this file to override allowlists/denylists for Python and Shell.
 
 <div align="center">
 

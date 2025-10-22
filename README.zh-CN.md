@@ -124,6 +124,9 @@ TAVILY_API_KEY=tvly-xxxx
 
 系统提示与待办清单规范见 `src/adorable_cli/prompt.py`。
 
+安全执行工具：`SecurePythonTools` 与 `SecureShellTools` 采用组合封装（Toolkit + Agno 原生工具），统一返回 `str`。
+接口：`execute_python_code(code: str, variable_to_return: Optional[str] = None) -> str`，`run_shell_command(command: str, tail: int = 100) -> str`。
+
 <div align="center">
   <a id="examples"></a>
   
@@ -208,6 +211,7 @@ adorable --help
 
 - 智能体可能读取/写入当前工作目录（启动目录）下的文件；生产环境谨慎使用并审核改动
 - 本地记忆存储在 `~/.adorable/memory.db`；不需要时可手动删除
+- 安全配置可选：`~/.adorable/security.yaml`；若不存在则使用内置安全默认值。创建该文件可自定义 Python 和 Shell 的允许/拒绝列表。
 
 <div align="center">
   <a id="dev-guide"></a>
