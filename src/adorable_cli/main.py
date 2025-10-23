@@ -6,7 +6,6 @@ from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as pkg_version
 from pathlib import Path
 
-
 from agno.agent import Agent
 from agno.db.sqlite import SqliteDb
 from agno.models.openai import OpenAILike
@@ -21,10 +20,12 @@ from rich.columns import Columns
 from rich.console import Console, Group
 from rich.panel import Panel
 from rich.rule import Rule
+from rich.markdown import Markdown
 from rich.text import Text
 
 from adorable_cli.prompt import MAIN_AGENT_DESCRIPTION, MAIN_AGENT_INSTRUCTIONS
 from adorable_cli.tools import create_secure_tools
+from adorable_cli.ui.stream_renderer import StreamRenderer
 
 CONFIG_PATH = Path.home() / ".adorable"
 CONFIG_FILE = CONFIG_PATH / "config"
@@ -205,7 +206,9 @@ def print_help():
     help_text.append(
         "  - TAVILY_API_KEY is set via `adorable config` to enable web search (Tavily)\n"
     )
-    help_text.append("  - Security: optional ~/.adorable/security.yaml overrides defaults; if absent, built-in safe defaults are used\n")
+    help_text.append(
+        "  - Security: optional ~/.adorable/security.yaml overrides defaults; if absent, built-in safe defaults are used\n"
+    )
     help_text.append("  - Press Enter to submit; Ctrl+C/Ctrl+D to exit\n")
     console.print(Panel(help_text, title="Help", border_style="blue"))
 
@@ -297,7 +300,7 @@ async def run_interactive_async(agent) -> int:
         Rule(style="grey37"),
         Text("• Run `uv run ador` to enter interactive mode"),
         Text("• Run `uv run adorable config` to configure API and model"),
-        Text("• Press Enter to submit; Ctrl+C/Ctrl+D to exit", style="grey58"),
+
         # Text("\nRecent activity", style="bold dark_orange"),
         # Rule(style="grey37"),
         # Text("No recent activity", style="grey58"),
@@ -328,12 +331,14 @@ async def run_interactive_async(agent) -> int:
         if user_input.lower() in exit_on:
             break
         try:
-            # Streamed rendering: direct output (without prompt_toolkit stdout patch)
-            await agent.aprint_response(user_input, stream=True, markdown=True)
+            # Streamed rendering: custom event-driven renderer
+            events = agent.run(user_input, stream=True, stream_intermediate_steps=True)
+            StreamRenderer(console).render_stream(events)
         except Exception as e:
-            console.print(f"[yellow]Streaming error, fallback to non-stream:[/yellow] {e}")
+            console.print(f"Streaming error, fallback to non-stream: {e}")
             try:
-                await agent.aprint_response(user_input, stream=False, markdown=True)
+                response = agent.run(user_input)
+                console.print(Markdown(getattr(response, "content", "")))
             except Exception as e2:
                 console.print(f"[red]Error:[/red] {e2}")
     return 0
