@@ -28,10 +28,10 @@ class StreamRenderer:
         self.tool_line_style = tool_line_style
         self.tool_name_style = tool_name_style
 
-    def render_stream(self, events: Iterator[Any]) -> None:
+    def render_stream(self, stream: Iterator[Any]) -> None:
         final_text: Optional[str] = None
 
-        for event in events:
+        for event in stream:
             etype = getattr(event, "event", "")
 
             # Content streaming (intermediate and final)
@@ -39,12 +39,10 @@ class StreamRenderer:
                 final_text = getattr(event, "content", "")
 
             # Tool call start
-            elif etype in ("ToolCallStarted", "RunToolCallStarted"):
+            if etype in ("ToolCallStarted", "RunToolCallStarted"):
                 tool = getattr(event, "tool", None)
                 name = getattr(tool, "tool_name", None) or getattr(tool, "name", None) or "tool"
-                args = (
-                    getattr(event, "tool_args", None) or getattr(tool, "tool_args", None) or {}
-                )
+                args = getattr(event, "tool_args", None) or getattr(tool, "tool_args", None) or {}
                 summary = self._summarize_args(args if isinstance(args, dict) else {})
                 t = Text.from_markup(
                     f"[{self.tool_line_style}]• ToolCall: [{self.tool_name_style}]{name}[/{self.tool_name_style}]({summary})[/]"
@@ -54,11 +52,11 @@ class StreamRenderer:
                 t.overflow = "fold"
                 self.console.print(t)
 
-            else:
-                pass
-
         # Final result display
-        self.console.print(Markdown(final_text or ""))
+        self.console.print(
+            Text.from_markup("\n[bold orange3]🐱 Adorable:[/bold orange3]", style="bold orange3")
+        )
+        self.console.print(Markdown((final_text or "") + "\n"))
 
     def _summarize_args(self, args: dict[str, Any]) -> str:
         if not args:

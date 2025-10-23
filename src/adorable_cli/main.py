@@ -18,9 +18,9 @@ from agno.tools.tavily import TavilyTools
 from rich.align import Align
 from rich.columns import Columns
 from rich.console import Console, Group
+from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.rule import Rule
-from rich.markdown import Markdown
 from rich.text import Text
 
 from adorable_cli.prompt import MAIN_AGENT_DESCRIPTION, MAIN_AGENT_INSTRUCTIONS
@@ -160,7 +160,6 @@ def build_agent():
             api_key=api_key,
             base_url=base_url,
             max_tokens=32000,
-            extra_body={"thinking": {"type": "disabled"}},
         ),
         # system prompt (session-state)
         description=MAIN_AGENT_DESCRIPTION,
@@ -300,10 +299,6 @@ async def run_interactive_async(agent) -> int:
         Rule(style="grey37"),
         Text("• Run `uv run ador` to enter interactive mode"),
         Text("• Run `uv run adorable config` to configure API and model"),
-
-        # Text("\nRecent activity", style="bold dark_orange"),
-        # Rule(style="grey37"),
-        # Text("No recent activity", style="grey58"),
         Text("\nConfig", style="bold dark_orange"),
         Rule(style="grey37"),
         Text(f"Adorable CLI {ver} • Model {model_id}", style="grey58"),
@@ -332,8 +327,8 @@ async def run_interactive_async(agent) -> int:
             break
         try:
             # Streamed rendering: custom event-driven renderer
-            events = agent.run(user_input, stream=True, stream_intermediate_steps=True)
-            StreamRenderer(console).render_stream(events)
+            stream = agent.run(user_input, stream=True, stream_intermediate_steps=True)
+            StreamRenderer(console).render_stream(stream)
         except Exception as e:
             console.print(f"Streaming error, fallback to non-stream: {e}")
             try:
