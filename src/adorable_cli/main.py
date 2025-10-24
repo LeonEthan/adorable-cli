@@ -5,6 +5,8 @@ import sys
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as pkg_version
 from pathlib import Path
+from datetime import datetime
+from time import perf_counter
 
 from agno.agent import Agent
 from agno.db.sqlite import SqliteDb
@@ -18,9 +20,9 @@ from agno.tools.tavily import TavilyTools
 from rich.align import Align
 from rich.columns import Columns
 from rich.console import Console, Group
+from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.rule import Rule
-from rich.markdown import Markdown
 from rich.text import Text
 
 from adorable_cli.prompt import MAIN_AGENT_DESCRIPTION, MAIN_AGENT_INSTRUCTIONS
@@ -160,7 +162,6 @@ def build_agent():
             api_key=api_key,
             base_url=base_url,
             max_tokens=32000,
-            extra_body={"thinking": {"type": "disabled"}},
         ),
         # system prompt (session-state)
         description=MAIN_AGENT_DESCRIPTION,
@@ -300,10 +301,6 @@ async def run_interactive_async(agent) -> int:
         Rule(style="grey37"),
         Text("• Run `uv run ador` to enter interactive mode"),
         Text("• Run `uv run adorable config` to configure API and model"),
-
-        # Text("\nRecent activity", style="bold dark_orange"),
-        # Rule(style="grey37"),
-        # Text("No recent activity", style="grey58"),
         Text("\nConfig", style="bold dark_orange"),
         Rule(style="grey37"),
         Text(f"Adorable CLI {ver} • Model {model_id}", style="grey58"),
@@ -332,13 +329,32 @@ async def run_interactive_async(agent) -> int:
             break
         try:
             # Streamed rendering: custom event-driven renderer
-            events = agent.run(user_input, stream=True, stream_intermediate_steps=True)
-            StreamRenderer(console).render_stream(events)
+            stream = agent.run(user_input, stream=True, stream_intermediate_steps=True)
+            StreamRenderer(console).render_stream(stream)
         except Exception as e:
             console.print(f"Streaming error, fallback to non-stream: {e}")
             try:
+                # Fallback: non-stream run with local timing and metrics footer
+                start_at = datetime.now()
+                start_perf = perf_counter()
                 response = agent.run(user_input)
                 console.print(Markdown(getattr(response, "content", "")))
+                metrics = getattr(response, "metrics", None)
+                duration_val = getattr(metrics, "duration", None) if metrics is not None else None
+                if not isinstance(duration_val, (int, float)):
+                    duration_val = perf_counter() - start_perf
+                console.print(Text(f"⌛ {start_at:%Y-%m-%d %H:%M:%S} • elapsed {duration_val:.2f}s", style="grey58"))
+                if metrics is not None:
+                    input_tokens = getattr(metrics, "input_tokens", None)
+                    output_tokens = getattr(metrics, "output_tokens", None)
+                    total_tokens = getattr(metrics, "total_tokens", None)
+                    if any(v is not None for v in (input_tokens, output_tokens, total_tokens)):
+                        console.print(
+                            Text(
+                                f"🔢 Tokens: input {input_tokens if input_tokens is not None else '?'} • output {output_tokens if output_tokens is not None else '?'} • total {total_tokens if total_tokens is not None else '?'}",
+                                style="grey58",
+                            )
+                        )
             except Exception as e2:
                 console.print(f"[red]Error:[/red] {e2}")
     return 0
