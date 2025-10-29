@@ -1,12 +1,9 @@
-import asyncio
 import logging
 import os
 import sys
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as pkg_version
 from pathlib import Path
-from datetime import datetime
-from time import perf_counter
 
 from agno.agent import Agent
 from agno.db.sqlite import SqliteDb
@@ -20,13 +17,13 @@ from agno.tools.tavily import TavilyTools
 from rich.align import Align
 from rich.columns import Columns
 from rich.console import Console, Group
-from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.rule import Rule
 from rich.text import Text
 
 from adorable_cli.prompt import MAIN_AGENT_DESCRIPTION, MAIN_AGENT_INSTRUCTIONS
 from adorable_cli.tools import create_secure_tools
+from adorable_cli.tools.vision_tool import create_image_understanding_tool
 from adorable_cli.ui.stream_renderer import StreamRenderer
 
 CONFIG_PATH = Path.home() / ".adorable"
@@ -76,6 +73,7 @@ def load_env_from_config(cfg: dict[str, str]) -> None:
     api_key = cfg.get("API_KEY", "")
     base_url = cfg.get("BASE_URL", "")
     tavily_key = cfg.get("TAVILY_API_KEY", "")
+    vlm_model_id = cfg.get("VLM_MODEL_ID", "")
     if api_key:
         os.environ.setdefault("API_KEY", api_key)
         os.environ.setdefault("OPENAI_API_KEY", api_key)
@@ -88,6 +86,8 @@ def load_env_from_config(cfg: dict[str, str]) -> None:
     model_id = cfg.get("MODEL_ID", "")
     if model_id:
         os.environ.setdefault("ADORABLE_MODEL_ID", model_id)
+    if vlm_model_id:
+        os.environ.setdefault("ADORABLE_VLM_MODEL_ID", vlm_model_id)
 
 
 def ensure_config_interactive() -> dict[str, str]:
@@ -98,13 +98,14 @@ def ensure_config_interactive() -> dict[str, str]:
         cfg = parse_kv_file(CONFIG_FILE)
 
     # Four variables are required: API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY
+    # One optional variable: VLM_MODEL_ID (for vision language model)
     required_keys = ["API_KEY", "BASE_URL", "MODEL_ID", "TAVILY_API_KEY"]
     missing = [k for k in required_keys if not cfg.get(k, "").strip()]
 
     if missing:
         console.print(
             Panel(
-                "🔧 Initial or missing configuration: please provide four required variables: API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY.",
+                "🔧 Initial or missing configuration: please provide four required variables: API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY.\n💡 Optional: VLM_MODEL_ID for image understanding (defaults to MODEL_ID if not set).",
                 title="Adorable Setup",
                 border_style="yellow",
             )
@@ -131,7 +132,7 @@ def ensure_config_interactive() -> dict[str, str]:
 
 def build_agent():
     # Model id can be customized via env MODEL_ID, else defaults
-    model_id = os.environ.get("ADORABLE_MODEL_ID", "gpt-4o-mini")
+    model_id = os.environ.get("ADORABLE_MODEL_ID", "gpt-5-mini")
 
     # Read API key and base URL from environment (supports OpenAI-compatible providers)
     api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("API_KEY")
@@ -151,8 +152,10 @@ def build_agent():
         FileTools(base_dir=Path.cwd(), all=True),
         # User memory tools
         MemoryTools(db=db),
-        # New: Secure execution tools - extended from Agno native tools
+        # Secure execution tools - extended from Agno native tools
         *create_secure_tools(base_dir=Path.cwd()),
+        # Vision understanding tool
+        create_image_understanding_tool(),
     ]
 
     main_agent = Agent(
@@ -161,7 +164,7 @@ def build_agent():
             id=model_id,
             api_key=api_key,
             base_url=base_url,
-            max_tokens=32000,
+            max_tokens=8192,
         ),
         # system prompt (session-state)
         description=MAIN_AGENT_DESCRIPTION,
@@ -193,7 +196,7 @@ def print_help():
     help_text.append("\nUsage:\n", style="bold")
     help_text.append("  adorable               Enter interactive chat mode\n")
     help_text.append(
-        "  adorable config        Configure API_KEY, BASE_URL, TAVILY_API_KEY and MODEL_ID\n"
+        "  adorable config        Configure API_KEY, BASE_URL, TAVILY_API_KEY, MODEL_ID and VLM_MODEL_ID\n"
     )
     help_text.append("  adorable --help        Show help information\n")
     help_text.append("\nExamples:\n", style="bold")
@@ -204,6 +207,9 @@ def print_help():
         "  - On first run, you must set four required variables: API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY; configuration is stored at ~/.adorable/config\n"
     )
     help_text.append("  - MODEL_ID can be set via `adorable config` (e.g., glm-4-flash)\n")
+    help_text.append(
+        "  - VLM_MODEL_ID is optional and used for image understanding; defaults to MODEL_ID if not set\n"
+    )
     help_text.append(
         "  - TAVILY_API_KEY is set via `adorable config` to enable web search (Tavily)\n"
     )
@@ -231,7 +237,7 @@ def sanitize(val: str) -> str:
 def run_config() -> int:
     console.print(
         Panel(
-            "Configure API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY",
+            "Configure API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY, VLM_MODEL_ID",
             title="Adorable Config",
             border_style="yellow",
         )
@@ -242,6 +248,7 @@ def run_config() -> int:
     current_url = existing.get("BASE_URL", "")
     current_model = existing.get("MODEL_ID", "")
     current_tavily = existing.get("TAVILY_API_KEY", "")
+    current_vlm_model = existing.get("VLM_MODEL_ID", "")
 
     console.print(Text(f"Current API_KEY: {current_key or '(empty)'}", style="cyan"))
     api_key = input("Enter new API_KEY (leave blank to keep): ")
@@ -251,6 +258,9 @@ def run_config() -> int:
     model_id = input("Enter new MODEL_ID (leave blank to keep): ")
     console.print(Text(f"Current TAVILY_API_KEY: {current_tavily or '(empty)'}", style="cyan"))
     tavily_api_key = input("Enter new TAVILY_API_KEY (leave blank to keep): ")
+    console.print(Text(f"Current VLM_MODEL_ID: {current_vlm_model or '(empty)'}", style="cyan"))
+    console.print(Text("VLM_MODEL_ID is used for image understanding (optional, defaults to MODEL_ID)", style="dim"))
+    vlm_model_id = input("Enter new VLM_MODEL_ID (leave blank to keep): ")
 
     new_cfg = dict(existing)
     if api_key.strip():
@@ -261,6 +271,8 @@ def run_config() -> int:
         new_cfg["MODEL_ID"] = sanitize(model_id)
     if tavily_api_key.strip():
         new_cfg["TAVILY_API_KEY"] = sanitize(tavily_api_key)
+    if vlm_model_id.strip():
+        new_cfg["VLM_MODEL_ID"] = sanitize(vlm_model_id)
 
     write_kv_file(CONFIG_FILE, new_cfg)
     load_env_from_config(new_cfg)
@@ -268,7 +280,7 @@ def run_config() -> int:
     return 0
 
 
-async def run_interactive_async(agent) -> int:
+def run_interactive(agent) -> int:
     # Claude Code-style welcome UI: two-column layout + simple pixel icon
     pixel_sprite = r"""
 [sandy_brown]      ████          ████      [/sandy_brown]
@@ -332,36 +344,8 @@ async def run_interactive_async(agent) -> int:
             stream = agent.run(user_input, stream=True, stream_intermediate_steps=True)
             StreamRenderer(console).render_stream(stream)
         except Exception as e:
-            console.print(f"Streaming error, fallback to non-stream: {e}")
-            try:
-                # Fallback: non-stream run with local timing and metrics footer
-                start_at = datetime.now()
-                start_perf = perf_counter()
-                response = agent.run(user_input)
-                console.print(Markdown(getattr(response, "content", "")))
-                metrics = getattr(response, "metrics", None)
-                duration_val = getattr(metrics, "duration", None) if metrics is not None else None
-                if not isinstance(duration_val, (int, float)):
-                    duration_val = perf_counter() - start_perf
-                console.print(Text(f"⌛ {start_at:%Y-%m-%d %H:%M:%S} • elapsed {duration_val:.2f}s", style="grey58"))
-                if metrics is not None:
-                    input_tokens = getattr(metrics, "input_tokens", None)
-                    output_tokens = getattr(metrics, "output_tokens", None)
-                    total_tokens = getattr(metrics, "total_tokens", None)
-                    if any(v is not None for v in (input_tokens, output_tokens, total_tokens)):
-                        console.print(
-                            Text(
-                                f"🔢 Tokens: input {input_tokens if input_tokens is not None else '?'} • output {output_tokens if output_tokens is not None else '?'} • total {total_tokens if total_tokens is not None else '?'}",
-                                style="grey58",
-                            )
-                        )
-            except Exception as e2:
-                console.print(f"[red]Error:[/red] {e2}")
+            console.print(f"[red]Error:[/red] {e}")
     return 0
-
-
-def run_interactive(agent) -> int:
-    return asyncio.run(run_interactive_async(agent))
 
 
 def main() -> int:
