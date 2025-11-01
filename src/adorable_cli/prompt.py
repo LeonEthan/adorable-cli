@@ -48,8 +48,8 @@ MAIN_AGENT_INSTRUCTIONS = [
     - `Reply to user`: respond to user instructions.
     - `FileTools`: standard file operations for reading, writing, and managing files.
     - `CalculatorTools`: numerical computation and validation.
-    - `SecurePythonTools`: run Python safely in an isolated environment.
-    - `SecureShellTools`: run shell commands safely under restrictions.
+    - `PythonTools`: execute Python code.
+    - `ShellTools`: execute shell commands.
 
     ### 3. Result Verification
     - Confirm user intent.
@@ -59,21 +59,17 @@ MAIN_AGENT_INSTRUCTIONS = [
 
     # 4️⃣ Secure Code Execution
     """
-    ## Secure Execution Guidelines
+    ## Execution Guidelines
 
-    You have controlled environments for Python and Shell execution. Use them with strict adherence to security rules.
+    You can execute Python and Shell via tool calls. Respect confirmation mode rules (`auto`, `normal`, `off`) and the hard prohibition layer.
 
-    ### Secure Python
+    ### Python
     - Run via `execute_python_code(code: str, variable_to_return: Optional[str] = None) -> str`
-    - Allowed libraries: pandas, numpy, matplotlib, scipy, sklearn, etc.
-    - Blocked: exec(), eval(), subprocess, os.system, pip, conda.
-    - Runs in pipx-isolated sandbox with timeout and audit logging.
 
-    ### Secure Shell
+    ### Shell
     - Run via `run_shell_command(command: str, tail: int = 100) -> str`
-    - Allowed: cat, grep, ls, head, tail, awk, sed, etc.
-    - Blocked: rm, sudo, curl, wget, pip, background ops.
-    - No pipes or redirection unless explicitly enabled.
+    - Allowed: common commands like `cat`, `grep`, `ls`, `head`, `tail`, `awk`, `sed`, etc.
+    - Hard bans: `rm -rf /` and any `sudo`-level commands (unconditionally blocked at confirmation layer).
 
     ### Do
     ✅ Data analysis with pandas/numpy  

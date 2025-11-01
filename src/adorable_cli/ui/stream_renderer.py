@@ -7,6 +7,7 @@ from time import perf_counter
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.text import Text
+from adorable_cli.ui.utils import summarize_args
 
 
 class StreamRenderer:
@@ -49,7 +50,7 @@ class StreamRenderer:
                 tool = getattr(event, "tool", None)
                 name = getattr(tool, "tool_name", None) or getattr(tool, "name", None) or "tool"
                 args = getattr(event, "tool_args", None) or getattr(tool, "tool_args", None) or {}
-                summary = self._summarize_args(args if isinstance(args, dict) else {})
+                summary = summarize_args(args if isinstance(args, dict) else {})
                 t = Text.from_markup(
                     f"[{self.tool_line_style}]• ToolCall: [{self.tool_name_style}]{name}[/{self.tool_name_style}]({summary})[/]"
                 )
@@ -92,20 +93,22 @@ class StreamRenderer:
             )
             self.console.print(tokens_line)
 
-    def _summarize_args(self, args: dict[str, Any]) -> str:
-        if not args:
-            return ""
-        # Filter sensitive keys and truncate values
-        hidden_keys = {"api_key", "token", "password", "secret"}
-        parts: list[str] = []
-        for k, v in args.items():
-            if k in hidden_keys:
-                continue
-            sval = str(v)
-            if len(sval) > 64:
-                sval = sval[:61] + "..."
-            parts.append(f"{k}={sval}")
-        summary = ", ".join(parts)
-        if len(summary) > 100:
-            summary = summary[:97] + "..."
-        return summary
+    def handle_event(self, event: Any) -> None:
+        """Render specific event lines in a consistent style without consuming streams.
+
+        Currently used for ToolCall line rendering to de-duplicate presentation between
+        main process and renderer. Keeps pause/confirmation logic in the main flow.
+        """
+        etype = getattr(event, "event", "")
+        if etype in ("ToolCallStarted", "RunToolCallStarted"):
+            tool = getattr(event, "tool", None)
+            name = getattr(tool, "tool_name", None) or getattr(tool, "name", None) or "tool"
+            args = getattr(event, "tool_args", None) or getattr(tool, "tool_args", None) or {}
+            summary = summarize_args(args if isinstance(args, dict) else {})
+            t = Text.from_markup(
+                f"[{self.tool_line_style}]• ToolCall: [{self.tool_name_style}]{name}[/{self.tool_name_style}]({summary})[/]"
+            )
+            t.justify = "left"
+            t.no_wrap = False
+            t.overflow = "fold"
+            self.console.print(t)

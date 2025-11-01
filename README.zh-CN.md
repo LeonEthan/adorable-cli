@@ -124,7 +124,7 @@ TAVILY_API_KEY=tvly-xxxx
 
 系统提示与待办清单规范见 `src/adorable_cli/prompt.py`。
 
-安全执行工具：`SecurePythonTools` 与 `SecureShellTools` 采用组合封装（Toolkit + Agno 原生工具），统一返回 `str`。
+执行工具：使用 Agno 默认的 `PythonTools` 与 `ShellTools` 执行代码与命令，统一返回 `str`。
 接口：`execute_python_code(code: str, variable_to_return: Optional[str] = None) -> str`，`run_shell_command(command: str, tail: int = 100) -> str`。
 
 <div align="center">
@@ -206,12 +206,29 @@ adorable --help
 <div align="center">
   <a id="privacy"></a>
   
-  ## 🔒 隐私与安全
+## 🔒 隐私与安全
 </div>
 
 - 智能体可能读取/写入当前工作目录（启动目录）下的文件；生产环境谨慎使用并审核改动
 - 本地记忆存储在 `~/.adorable/memory.db`；不需要时可手动删除
-- 安全配置可选：`~/.adorable/security.yaml`；若不存在则使用内置安全默认值。创建该文件可自定义 Python 和 Shell 的允许/拒绝列表。
+
+### 安全策略：确认模式 + 硬禁用层
+
+- 模式
+  - `normal`：Python、Shell 与写文件操作执行前均需确认；检测到可能具破坏性的操作时必须显式确认。
+  - `auto`：对“安全”操作自动确认；对可能“危险”的操作弹窗确认。
+  - `off`：除硬禁用命令外自动确认；Python/Shell 仍提供简短预览以便拦截。
+- 硬禁用（无条件拦截）
+  - `rm -rf /`（或同等针对根目录的变体）
+  - 任何 `sudo` 命令
+- 风险识别
+  - Python：侦测 `os.remove`、`os.unlink`、`shutil.rmtree`、`os.rmdir`、`Path.unlink`、`Path.rmdir` 等破坏性调用
+  - Shell：侦测 `rm` 变体（例如 `rm -rf`）
+- 作用域与输出
+  - 文件操作作用域限定为当前工作目录（`cwd`）
+  - 执行工具仅返回 `str` 文本输出
+- 配置
+  - 不再使用外部 `security.yaml`；策略内置并由确认层强制执行。
 
 <div align="center">
   <a id="dev-guide"></a>

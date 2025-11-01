@@ -131,7 +131,7 @@ MODEL_ID=gpt-5-mini
 
 System prompt and TODO list guidelines: see `src/adorable_cli/prompt.py`.
 
-Secure execution tools: `SecurePythonTools` and `SecureShellTools` are implemented via composition over Agno tools and return `str` outputs.
+Execution tools: `PythonTools` and `ShellTools` (Agno defaults) are used for code and command execution, returning `str` outputs.
 Interfaces: `execute_python_code(code: str, variable_to_return: Optional[str] = None) -> str`, `run_shell_command(command: str, tail: int = 100) -> str`.
 
 <div align="center">
@@ -153,8 +153,8 @@ Using uv (recommended):
 
 ```
 uv sync
-uv run -m adorable_cli.main
-# 或：uv run src/adorable_cli/main.py
+uv run adorable --help
+uv run adorable
 ```
 
 Note: To pin Python version, use `uv sync -p 3.11`.
@@ -165,7 +165,14 @@ Using venv:
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -U pip setuptools wheel
-pip install -r requirements.txt
+pip install -e .
+adorable --help
+adorable
+```
+
+Alternative module invocation:
+
+```
 python -m adorable_cli.main
 ```
 
@@ -221,7 +228,24 @@ python -m adorable_cli.main
 
 - The agent may read/write files under the current working directory; review changes in production
 - Local memory is stored at `~/.adorable/memory.db`; remove it if not needed
-- Security config is optional at `~/.adorable/security.yaml`; if absent, built-in safe defaults are used. Create this file to override allowlists/denylists for Python and Shell.
+
+### Safety Strategy: Confirmation Modes + Hard Ban Layer
+
+- Modes
+  - `normal`: asks before Python, Shell, and file write operations; risky actions require explicit confirmation.
+  - `auto`: auto-confirms safe actions; asks for potentially destructive actions.
+  - `off`: auto-confirms all except hard-banned commands; shows a brief preview for Python/Shell to allow interception.
+- Hard bans (always blocked)
+  - `rm -rf /` or equivalents targeting root
+  - any `sudo` command
+- Risk detection
+  - Python: flags destructive calls such as `os.remove`, `os.unlink`, `shutil.rmtree`, `os.rmdir`, `Path.unlink`, `Path.rmdir`
+  - Shell: flags `rm` variants (e.g., `rm -rf`)
+- Scope & outputs
+  - File operations are limited to the current working directory (`cwd`)
+  - Execution tools return `str` outputs only
+- Configuration
+  - No external `security.yaml`. Behavior is built-in and enforced by the confirmation layer.
 
 <div align="center">
 

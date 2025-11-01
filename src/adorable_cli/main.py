@@ -12,20 +12,26 @@ from agno.tools.calculator import CalculatorTools
 from agno.tools.crawl4ai import Crawl4aiTools
 from agno.tools.file import FileTools
 from agno.tools.memory import MemoryTools
+from agno.tools.python import PythonTools
 from agno.tools.reasoning import ReasoningTools
+from agno.tools.shell import ShellTools
 from agno.tools.tavily import TavilyTools
+from agno.utils.log import configure_agno_logging
 from rich.align import Align
 from rich.columns import Columns
 from rich.console import Console, Group
+from rich.markdown import Markdown
 from rich.panel import Panel
+from rich.prompt import Prompt
 from rich.rule import Rule
 from rich.text import Text
 
 from adorable_cli.prompt import MAIN_AGENT_DESCRIPTION, MAIN_AGENT_INSTRUCTIONS
-from adorable_cli.tools import create_secure_tools
 from adorable_cli.tools.vision_tool import create_image_understanding_tool
 from adorable_cli.ui.enhanced_input import create_enhanced_session
 from adorable_cli.ui.enhanced_renderer_simple import create_simple_enhanced_renderer
+from adorable_cli.ui.stream_renderer import StreamRenderer
+from adorable_cli.ui.utils import summarize_args
 
 CONFIG_PATH = Path.home() / ".adorable"
 CONFIG_FILE = CONFIG_PATH / "config"
@@ -41,9 +47,32 @@ def configure_logging() -> None:
     the first user interaction in the CLI.
     """
     try:
+        # Global default logger level (fallback)
+        logging.getLogger().setLevel(logging.WARNING)
+        # Core Agno loggers
         logging.getLogger("agno").setLevel(logging.WARNING)
+        logging.getLogger("agno.agent").setLevel(logging.WARNING)
         logging.getLogger("agno.db").setLevel(logging.WARNING)
         logging.getLogger("agno.db.sqlite").setLevel(logging.WARNING)
+        # Tooling loggers (suppress INFO like "Running shell command" / "Reading files")
+        logging.getLogger("agno.tools").setLevel(logging.WARNING)
+        logging.getLogger("agno.tools.shell").setLevel(logging.WARNING)
+        logging.getLogger("agno.tools.file").setLevel(logging.WARNING)
+        logging.getLogger("agno.tools.python").setLevel(logging.WARNING)
+        logging.getLogger("agno.utils.log").setLevel(logging.WARNING)
+
+        # Provide a custom default logger to Agno to silence INFO from toolkits
+        silent_logger = logging.getLogger("adorable_cli_silent")
+        if not silent_logger.handlers:
+            # Use a NullHandler so no logs are emitted by default
+            silent_logger.addHandler(logging.NullHandler())
+        silent_logger.setLevel(logging.WARNING)
+        silent_logger.propagate = False
+        configure_agno_logging(custom_default_logger=silent_logger)
+
+        # Environment-based fallback for upstream log level controls (if respected)
+        os.environ.setdefault("AGNO_LOG_LEVEL", "WARNING")
+        os.environ.setdefault("AGNO_TOOLS_LOG_LEVEL", "WARNING")
     except Exception:
         # Non-fatal if logging configuration fails
         pass
@@ -75,6 +104,7 @@ def load_env_from_config(cfg: dict[str, str]) -> None:
     base_url = cfg.get("BASE_URL", "")
     tavily_key = cfg.get("TAVILY_API_KEY", "")
     vlm_model_id = cfg.get("VLM_MODEL_ID", "")
+    confirm_mode = cfg.get("CONFIRM_MODE", "")
     if api_key:
         os.environ.setdefault("API_KEY", api_key)
         os.environ.setdefault("OPENAI_API_KEY", api_key)
@@ -89,6 +119,8 @@ def load_env_from_config(cfg: dict[str, str]) -> None:
         os.environ.setdefault("ADORABLE_MODEL_ID", model_id)
     if vlm_model_id:
         os.environ.setdefault("ADORABLE_VLM_MODEL_ID", vlm_model_id)
+    if confirm_mode:
+        os.environ.setdefault("ADORABLE_CONFIRM_MODE", confirm_mode)
 
 
 def ensure_config_interactive() -> dict[str, str]:
@@ -167,11 +199,15 @@ def build_agent():
         FileTools(base_dir=Path.cwd(), all=True),
         # User memory tools
         MemoryTools(db=db),
-        # Secure execution tools - extended from Agno native tools
-        *create_secure_tools(base_dir=Path.cwd()),
+        # Default Agno execution tools (Python/Shell)
+        PythonTools(base_dir=Path.cwd()),
+        ShellTools(base_dir=Path.cwd()),
         # Vision understanding tool
         create_image_understanding_tool(),
     ]
+
+    # Read confirm mode to adjust tool confirmation behavior
+    confirm_mode = os.environ.get("ADORABLE_CONFIRM_MODE", "auto").strip() or "auto"
 
     main_agent = Agent(
         name="adorable",
@@ -202,6 +238,39 @@ def build_agent():
         # output format
         markdown=True,
     )
+
+    # Confirmation behavior per mode
+    if confirm_mode in ("normal", "auto", "off"):
+        try:
+            for toolkit in team_tools:
+                functions = getattr(toolkit, "functions", {})
+                # First clear all
+                for f in functions.values():
+                    try:
+                        setattr(f, "requires_confirmation", False)
+                    except Exception:
+                        pass
+                # Enable per-mode targets
+                for name, f in functions.items():
+                    # Python: support both Agno default and legacy wrapper names
+                    python_names = {"execute_python_code", "run_python_code"}
+                    shell_names = {"run_shell_command"}
+                    file_save = {"save_file"}
+                    try:
+                        if confirm_mode in ("normal", "auto") and (
+                            name in python_names or name in shell_names
+                        ):
+                            setattr(f, "requires_confirmation", True)
+                        # Off mode: still pause Python/Shell to allow hard-ban enforcement, then auto-confirm
+                        if confirm_mode == "off" and (name in python_names or name in shell_names):
+                            setattr(f, "requires_confirmation", True)
+                        if confirm_mode == "normal" and name in file_save:
+                            setattr(f, "requires_confirmation", True)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
     return main_agent
 
 
@@ -213,6 +282,7 @@ def print_help():
     help_text.append(
         "  adorable config        Configure API_KEY, BASE_URL, TAVILY_API_KEY, MODEL_ID and VLM_MODEL_ID\n"
     )
+    help_text.append("  adorable mode [normal|auto|off]   Set or view confirm mode\n")
     help_text.append("  adorable --help        Show help information\n")
     help_text.append("Examples:\n", style="bold")
     help_text.append("  adorable\n")
@@ -229,7 +299,10 @@ def print_help():
         "  - TAVILY_API_KEY is set via `adorable config` to enable web search (Tavily)\n"
     )
     help_text.append(
-        "  - Security: optional ~/.adorable/security.yaml overrides defaults; if absent, built-in safe defaults are used\n"
+        "  - Security: built-in safety policy enforced by the confirmation layer; no external security.yaml\n"
+    )
+    help_text.append(
+        "  - Confirm Mode: 'normal' asks before all tool runs; 'auto' asks only for risky ops; 'off' auto-confirms\n"
     )
     help_text.append("  - Press Enter to submit; Ctrl+C/Ctrl+D to exit\n")
     console.print(Panel(help_text, title="Help", border_style="blue", padding=(0, 1)))
@@ -329,6 +402,9 @@ def run_interactive(agent) -> int:
     )
 
     # Right panel: getting started tips + recent activity (preserve layout)
+    # Confirm mode from env (default: auto)
+    confirm_mode = os.environ.get("ADORABLE_CONFIRM_MODE", "auto").strip() or "auto"
+
     right_group = Group(
         Text("Tips for getting started", style="bold dark_orange"),
         Rule(style="grey37"),
@@ -339,6 +415,7 @@ def run_interactive(agent) -> int:
         Text("Config", style="bold dark_orange"),
         Rule(style="grey37"),
         Text(f"Adorable CLI {ver} • Model {model_id}", style="grey58"),
+        Text(f"Confirm Mode: {confirm_mode}", style="grey58"),
         Text(f"{cwd}", style="grey58"),
     )
 
@@ -366,8 +443,8 @@ def run_interactive(agent) -> int:
         "[dim]Input: Enter=submit, Ctrl+J=newline • Type 'help-input' for shortcuts[/dim]"
     )
 
-    # Create enhanced renderer with basic features only
-    enhanced_renderer = create_simple_enhanced_renderer(
+    # Create enhanced renderer (stream printing handled in loop for HITL)
+    _ = create_simple_enhanced_renderer(
         console, enable_diff_display=False, enable_confirmations=False
     )
 
@@ -388,6 +465,23 @@ def run_interactive(agent) -> int:
         if user_input.lower() in exit_on:
             console.print("👋 Bye!", style="yellow")
             break
+        # Session-level confirm mode commands: /auto, /normal, /off
+        if user_input.strip().lower() in {"/auto", "/normal", "/off"}:
+            new_mode = user_input.strip().lower()[1:]
+            os.environ["ADORABLE_CONFIRM_MODE"] = new_mode
+            apply_confirm_mode_to_agent(agent, new_mode)
+            # Update local session confirm_mode for subsequent auto_confirm logic
+            confirm_mode = new_mode
+            console.print(f"✅ Switched confirm mode to: {new_mode}", style="green")
+            # Show lightweight status panel
+            status = Group(
+                Text(f"Confirm Mode: {new_mode}", style="grey58"),
+                Text("Subsequent tool calls will follow the new mode", style="grey58"),
+            )
+            console.print(
+                Panel(status, title="Session Update", border_style="blue", padding=(0, 1))
+            )
+            continue
         elif user_input.lower() in special_commands:
             if user_input.lower() == "help-input":
                 enhanced_session.show_quick_help()
@@ -427,9 +521,231 @@ def run_interactive(agent) -> int:
                 continue
 
         try:
-            # Enhanced streamed rendering with interactive features
+            # Streamed rendering with HITL confirmations
+            final_text = ""
+            final_metrics = None
             stream = agent.run(user_input, stream=True, stream_intermediate_steps=True)
-            enhanced_renderer.render_stream(stream)
+
+            # Helper: summarize args like StreamRenderer
+            # Use shared summarize_args from ui.utils for argument previews
+
+            # Risk classifiers
+            def get_shell_text(targs: dict) -> str:
+                """Normalize shell tool args to a single command text for checks/preview."""
+                val = targs.get("command", None)
+                if val is None:
+                    val = targs.get("args", None) or targs.get("argv", None)
+                if isinstance(val, (list, tuple)):
+                    return " ".join(str(x) for x in val)
+                return str(val or "")
+
+            def classify_python_risk(code: str) -> str:
+                # Relaxed detection: flag as dangerous only on clearly destructive operations
+                text = (code or "").lower()
+                destructive_markers = [
+                    "os.remove(",
+                    "os.unlink(",
+                    "shutil.rmtree(",
+                    "os.rmdir(",
+                    ".unlink(",  # Path(...).unlink()
+                    ".rmdir(",  # Path(...).rmdir()
+                    "rm -rf",
+                    " rm ",
+                ]
+                risky = any(marker in text for marker in destructive_markers)
+                return "danger" if risky else "safe"
+
+            def classify_shell_risk(command_or_args: object) -> str:
+                """Classify shell risk, robust to list/tuple or string inputs.
+
+                - Treat any `rm` invocation as dangerous (including `rm -rf`)
+                - Otherwise safe
+                """
+                if isinstance(command_or_args, (list, tuple)):
+                    cmd_text = " ".join(str(x) for x in command_or_args)
+                else:
+                    cmd_text = str(command_or_args or "")
+                lower = cmd_text.strip().lower()
+                tokens = lower.split()
+                base = tokens[0] if tokens else ""
+                destructive_bases = {"rm"}
+                risky = (base in destructive_bases) or ("rm -rf" in lower)
+                return "danger" if risky else "safe"
+
+            # Initialize unified renderer for ToolCall lines
+            renderer = StreamRenderer(console)
+
+            # Process stream with pause handling
+            while True:
+                paused_event = None
+                for event in stream:
+                    etype = getattr(event, "event", "")
+
+                    if etype in ("RunCompleted",):
+                        final_text = getattr(event, "content", "")
+                        final_metrics = getattr(event, "metrics", None)
+
+                    if etype in ("ToolCallStarted", "RunToolCallStarted"):
+                        # Delegate ToolCall line rendering to unified renderer
+                        renderer.handle_event(event)
+
+                    if getattr(event, "is_paused", False):
+                        paused_event = event
+                        break
+
+                if paused_event is not None:
+                    # Confirm tools requiring approval
+                    tools_list = (
+                        getattr(paused_event, "tools_requiring_confirmation", None)
+                        or getattr(paused_event, "tools", None)
+                        or []
+                    )
+
+                    for tool in tools_list:
+                        tname = (
+                            getattr(tool, "tool_name", None)
+                            or getattr(tool, "name", None)
+                            or "tool"
+                        )
+                        targs = getattr(tool, "tool_args", None) or {}
+                        risk = "safe"
+                        if tname in ("execute_python_code", "run_python_code"):
+                            risk = classify_python_risk(str(targs.get("code", "")))
+                        elif tname == "run_shell_command":
+                            # Support either string command or args list
+                            cmd_input = targs.get("command", None)
+                            if cmd_input is None:
+                                cmd_input = targs.get("args", None) or targs.get("argv", None)
+                            risk = classify_shell_risk(cmd_input)
+
+                        # Hard bans: block dangerous system-level commands regardless of mode
+                        hard_ban = False
+                        if tname == "run_shell_command":
+                            cmd_text = get_shell_text(targs)
+                            lower = cmd_text.lower().strip()
+                            if "rm -rf /" in lower:
+                                hard_ban = True
+                            if lower.startswith("sudo ") or " sudo " in lower:
+                                hard_ban = True
+                        if hard_ban:
+                            setattr(tool, "confirmed", False)
+                            console.print(
+                                Text.from_markup("[red]Blocked dangerous command (hard-ban)[/red]")
+                            )
+                            continue
+
+                        auto_confirm = (confirm_mode == "off") or (
+                            confirm_mode == "auto" and risk == "safe"
+                        )
+                        if auto_confirm:
+                            setattr(tool, "confirmed", True)
+                        else:
+                            # Show detailed content preview for confirmation
+                            preview_group = []
+                            header_text = Text(
+                                f"Tool: {tname} • Risk: {risk}", style="bold magenta"
+                            )
+                            preview_group.append(header_text)
+                            try:
+                                if tname == "execute_python_code":
+                                    code = str(targs.get("code", ""))
+                                    # Limit huge code blocks for readability
+                                    code_display = (
+                                        code if len(code) <= 2000 else (code[:1970] + "...")
+                                    )
+                                    preview_group.append(
+                                        Text.from_markup(f"```python\n{code_display}\n```")
+                                    )
+                                elif tname == "run_shell_command":
+                                    cmd = get_shell_text(targs)
+                                    cmd_display = cmd if len(cmd) <= 1000 else (cmd[:970] + "...")
+                                    preview_group.append(Text(f"```bash\n{cmd_display}\n```"))
+                                elif tname == "save_file":
+                                    # Support multiple arg names used by FileTools
+                                    file_path = str(
+                                        targs.get("file_path")
+                                        or targs.get("path")
+                                        or targs.get("file_name")
+                                        or targs.get("filename")
+                                        or ""
+                                    )
+                                    content = str(
+                                        targs.get("content")
+                                        or targs.get("contents")
+                                        or targs.get("text")
+                                        or targs.get("data")
+                                        or targs.get("body")
+                                        or ""
+                                    )
+                                    content_display = (
+                                        content
+                                        if len(content) <= 2000
+                                        else (content[:1970] + "...")
+                                    )
+                                    info = (
+                                        Text(f"Save path: {file_path}", style="cyan")
+                                        if file_path
+                                        else Text("Save path not provided", style="red")
+                                    )
+                                    preview_group.append(info)
+                                    if content_display:
+                                        preview_group.append(
+                                            Text.from_markup(f"```\n{content_display}\n```")
+                                        )
+                                else:
+                                    # Generic args preview
+                                    summary = summarize_args(
+                                        targs if isinstance(targs, dict) else {}
+                                    )
+                                    preview_group.append(Text(f"Args: {summary}", style="cyan"))
+                            except Exception:
+                                pass
+
+                            console.print(
+                                Panel(
+                                    Group(*preview_group),
+                                    title="Tool Call Preview",
+                                    border_style="cyan",
+                                    padding=(0, 1),
+                                )
+                            )
+
+                            resp = Prompt.ask(
+                                f"Confirm running tool [magenta]{tname}[/magenta] (risk={risk})?",
+                                choices=["y", "n"],
+                                default="y",
+                            )
+                            setattr(tool, "confirmed", resp == "y")
+
+                    stream = agent.continue_run(
+                        run_id=getattr(paused_event, "run_id", None),
+                        updated_tools=getattr(paused_event, "tools", None),
+                        stream=True,
+                        stream_intermediate_steps=True,
+                    )
+                    continue
+                else:
+                    break
+
+            # Final result display
+            # Use Text with style instead of passing style to from_markup (unsupported)
+            console.print(Text("🐱 Adorable:", style="bold orange3"))
+            console.print(Markdown(final_text or ""))
+
+            # Session footer: time and tokens (no start time here; keep metrics if available)
+            input_tokens = None
+            output_tokens = None
+            total_tokens = None
+            if final_metrics is not None:
+                input_tokens = getattr(final_metrics, "input_tokens", None)
+                output_tokens = getattr(final_metrics, "output_tokens", None)
+                total_tokens = getattr(final_metrics, "total_tokens", None)
+            if any(v is not None for v in (input_tokens, output_tokens, total_tokens)):
+                tokens_line = Text(
+                    f"🔢 Tokens: input {input_tokens if input_tokens is not None else '?'} • output {output_tokens if output_tokens is not None else '?'} • total {total_tokens if total_tokens is not None else '?'}",
+                    style="grey58",
+                )
+                console.print(tokens_line)
         except Exception as e:
             console.print(f"[red]Error:[/red] {e}")
 
@@ -452,9 +768,31 @@ def main() -> int:
         return print_version()
     if len(args) >= 1 and args[0].lower() == "config":
         return run_config()
+    if len(args) >= 1 and args[0].lower() == "mode":
+        # Set or view confirmation mode
+        CONFIG_PATH.mkdir(parents=True, exist_ok=True)
+        existing = parse_kv_file(CONFIG_FILE)
+        current_mode = (
+            existing.get("CONFIRM_MODE", os.environ.get("ADORABLE_CONFIRM_MODE", "auto")) or "auto"
+        )
+        if len(args) >= 2 and args[1].lower() in {"normal", "auto", "off"}:
+            new_mode = args[1].lower()
+            existing["CONFIRM_MODE"] = new_mode
+            write_kv_file(CONFIG_FILE, existing)
+            os.environ["ADORABLE_CONFIRM_MODE"] = new_mode
+            console.print(f"✅ Confirm mode set to: {new_mode}")
+            return 0
+        else:
+            console.print(f"Current confirm mode: {current_mode}")
+            console.print("Use: adorable mode [normal|auto|off]")
+            return 0
 
     # Ensure config and load env
-    ensure_config_interactive()
+    cfg = ensure_config_interactive()
+    # If confirm mode not set in env, default to config or auto
+    cm = cfg.get("CONFIRM_MODE", "").strip()
+    if cm:
+        os.environ.setdefault("ADORABLE_CONFIRM_MODE", cm)
 
     # Reduce Agno INFO logs (e.g., initial DB table creation) on first run
     configure_logging()
@@ -470,3 +808,44 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+def apply_confirm_mode_to_agent(agent, mode: str) -> None:
+    """Dynamically adjust requires_confirmation flags on the existing agent's tools.
+
+    - normal: confirm python, shell, and save_file; others off
+    - auto: confirm python and shell only; others off
+    - off: all off
+    """
+    try:
+        target_true = set()
+        python_names = {"execute_python_code", "run_python_code"}
+        shell_names = {"run_shell_command"}
+        file_names = {"save_file"}
+
+        if mode == "normal":
+            target_true = set().union(python_names, shell_names, file_names)
+        elif mode == "auto":
+            target_true = set().union(python_names, shell_names)
+        elif mode == "off":
+            # In off mode, still pause Python/Shell to allow hard-bans at confirmation layer, then auto-confirm.
+            target_true = set().union(python_names, shell_names)
+
+        for tk in getattr(agent, "tools", []):
+            functions = getattr(tk, "functions", {})
+            # First set all to False
+            for f in functions.values():
+                try:
+                    setattr(f, "requires_confirmation", False)
+                except Exception:
+                    pass
+            # Then enable target ones
+            for name, f in functions.items():
+                if name in target_true:
+                    try:
+                        setattr(f, "requires_confirmation", True)
+                    except Exception:
+                        pass
+    except Exception:
+        # Non-fatal
+        pass
