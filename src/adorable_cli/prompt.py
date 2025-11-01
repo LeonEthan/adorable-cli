@@ -61,7 +61,7 @@ MAIN_AGENT_INSTRUCTIONS = [
     """
     ## Execution Guidelines
 
-    You can execute Python and Shell via tool calls. Respect confirmation mode rules (`auto`, `normal`, `off`) and the hard prohibition layer.
+    You can execute Python and Shell via tool calls. Respect confirmation mode rules (`normal`, `auto`) and the hard prohibition layer. In `auto` mode, Python/Shell calls pause for hard-ban checks and then auto-confirm.
 
     ### Python
     - Run via `execute_python_code(code: str, variable_to_return: Optional[str] = None) -> str`

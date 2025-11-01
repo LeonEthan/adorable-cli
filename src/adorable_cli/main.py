@@ -29,7 +29,6 @@ from rich.text import Text
 from adorable_cli.prompt import MAIN_AGENT_DESCRIPTION, MAIN_AGENT_INSTRUCTIONS
 from adorable_cli.tools.vision_tool import create_image_understanding_tool
 from adorable_cli.ui.enhanced_input import create_enhanced_session
-from adorable_cli.ui.enhanced_renderer_simple import create_simple_enhanced_renderer
 from adorable_cli.ui.stream_renderer import StreamRenderer
 from adorable_cli.ui.utils import summarize_args
 
@@ -40,39 +39,16 @@ console = Console()
 
 
 def configure_logging() -> None:
-    """Reduce Agno logs to WARNING to avoid initial INFO noise.
+    """Configure Agno logging using built-in helpers and env flags.
 
-    On first run, Agno's SqliteDb creates tables and logs at INFO level.
-    Lowering the logger level prevents this message from interrupting
-    the first user interaction in the CLI.
+    Prefer Agno's native logging configuration over custom wrappers.
     """
     try:
-        # Global default logger level (fallback)
-        logging.getLogger().setLevel(logging.WARNING)
-        # Core Agno loggers
-        logging.getLogger("agno").setLevel(logging.WARNING)
-        logging.getLogger("agno.agent").setLevel(logging.WARNING)
-        logging.getLogger("agno.db").setLevel(logging.WARNING)
-        logging.getLogger("agno.db.sqlite").setLevel(logging.WARNING)
-        # Tooling loggers (suppress INFO like "Running shell command" / "Reading files")
-        logging.getLogger("agno.tools").setLevel(logging.WARNING)
-        logging.getLogger("agno.tools.shell").setLevel(logging.WARNING)
-        logging.getLogger("agno.tools.file").setLevel(logging.WARNING)
-        logging.getLogger("agno.tools.python").setLevel(logging.WARNING)
-        logging.getLogger("agno.utils.log").setLevel(logging.WARNING)
-
-        # Provide a custom default logger to Agno to silence INFO from toolkits
-        silent_logger = logging.getLogger("adorable_cli_silent")
-        if not silent_logger.handlers:
-            # Use a NullHandler so no logs are emitted by default
-            silent_logger.addHandler(logging.NullHandler())
-        silent_logger.setLevel(logging.WARNING)
-        silent_logger.propagate = False
-        configure_agno_logging(custom_default_logger=silent_logger)
-
-        # Environment-based fallback for upstream log level controls (if respected)
+        # Default log levels via environment (respected by Agno)
         os.environ.setdefault("AGNO_LOG_LEVEL", "WARNING")
         os.environ.setdefault("AGNO_TOOLS_LOG_LEVEL", "WARNING")
+        # Initialize Agno logging with defaults
+        configure_agno_logging()
     except Exception:
         # Non-fatal if logging configuration fails
         pass
@@ -206,8 +182,20 @@ def build_agent():
         create_image_understanding_tool(),
     ]
 
-    # Read confirm mode to adjust tool confirmation behavior
+    # Read confirm mode to adjust tool confirmation behavior (only 'normal' and 'auto')
     confirm_mode = os.environ.get("ADORABLE_CONFIRM_MODE", "auto").strip() or "auto"
+    if confirm_mode == "off":
+        # Backward compatibility: treat deprecated 'off' as 'auto'
+        confirm_mode = "auto"
+
+    # Debug configuration from environment
+    agno_debug_env = (os.environ.get("AGNO_DEBUG", "").strip().lower())
+    debug_mode = agno_debug_env in {"1", "true", "yes", "on"}
+    debug_level_val = os.environ.get("AGNO_DEBUG_LEVEL", "")
+    try:
+        debug_level = int(debug_level_val) if debug_level_val else None
+    except Exception:
+        debug_level = None
 
     main_agent = Agent(
         name="adorable",
@@ -237,10 +225,13 @@ def build_agent():
         num_history_runs=3,
         # output format
         markdown=True,
+        # built-in debug toggles
+        debug_mode=debug_mode,
+        **({"debug_level": debug_level} if debug_level is not None else {}),
     )
 
     # Confirmation behavior per mode
-    if confirm_mode in ("normal", "auto", "off"):
+    if confirm_mode in ("normal", "auto"):
         try:
             for toolkit in team_tools:
                 functions = getattr(toolkit, "functions", {})
@@ -261,9 +252,6 @@ def build_agent():
                             name in python_names or name in shell_names
                         ):
                             setattr(f, "requires_confirmation", True)
-                        # Off mode: still pause Python/Shell to allow hard-ban enforcement, then auto-confirm
-                        if confirm_mode == "off" and (name in python_names or name in shell_names):
-                            setattr(f, "requires_confirmation", True)
                         if confirm_mode == "normal" and name in file_save:
                             setattr(f, "requires_confirmation", True)
                     except Exception:
@@ -282,7 +270,7 @@ def print_help():
     help_text.append(
         "  adorable config        Configure API_KEY, BASE_URL, TAVILY_API_KEY, MODEL_ID and VLM_MODEL_ID\n"
     )
-    help_text.append("  adorable mode [normal|auto|off]   Set or view confirm mode\n")
+    help_text.append("  adorable mode [normal|auto]   Set or view confirm mode\n")
     help_text.append("  adorable --help        Show help information\n")
     help_text.append("Examples:\n", style="bold")
     help_text.append("  adorable\n")
@@ -302,7 +290,7 @@ def print_help():
         "  - Security: built-in safety policy enforced by the confirmation layer; no external security.yaml\n"
     )
     help_text.append(
-        "  - Confirm Mode: 'normal' asks before all tool runs; 'auto' asks only for risky ops; 'off' auto-confirms\n"
+        "  - Confirm Mode: 'normal' prompts before tool runs; 'auto' pauses Python/Shell for hard-bans then auto-confirms\n"
     )
     help_text.append("  - Press Enter to submit; Ctrl+C/Ctrl+D to exit\n")
     console.print(Panel(help_text, title="Help", border_style="blue", padding=(0, 1)))
@@ -394,7 +382,6 @@ def run_interactive(agent) -> int:
         ver = "version unknown"
     model_id = os.environ.get("ADORABLE_MODEL_ID", "gpt-5-mini")
     cwd = str(Path.cwd())
-    cfg_path = str(CONFIG_FILE)
 
     left_group = Group(
         Align.center(Text("Welcome use Adorable CLI!", style="bold white")),
@@ -443,10 +430,7 @@ def run_interactive(agent) -> int:
         "[dim]Input: Enter=submit, Ctrl+J=newline • Type 'help-input' for shortcuts[/dim]"
     )
 
-    # Create enhanced renderer (stream printing handled in loop for HITL)
-    _ = create_simple_enhanced_renderer(
-        console, enable_diff_display=False, enable_confirmations=False
-    )
+    # Stream rendering handled in loop with unified StreamRenderer
 
     while True:
         try:
@@ -465,8 +449,8 @@ def run_interactive(agent) -> int:
         if user_input.lower() in exit_on:
             console.print("👋 Bye!", style="yellow")
             break
-        # Session-level confirm mode commands: /auto, /normal, /off
-        if user_input.strip().lower() in {"/auto", "/normal", "/off"}:
+        # Session-level confirm mode commands: /auto, /normal
+        if user_input.strip().lower() in {"/auto", "/normal"}:
             new_mode = user_input.strip().lower()[1:]
             os.environ["ADORABLE_CONFIRM_MODE"] = new_mode
             apply_confirm_mode_to_agent(agent, new_mode)
@@ -539,38 +523,7 @@ def run_interactive(agent) -> int:
                     return " ".join(str(x) for x in val)
                 return str(val or "")
 
-            def classify_python_risk(code: str) -> str:
-                # Relaxed detection: flag as dangerous only on clearly destructive operations
-                text = (code or "").lower()
-                destructive_markers = [
-                    "os.remove(",
-                    "os.unlink(",
-                    "shutil.rmtree(",
-                    "os.rmdir(",
-                    ".unlink(",  # Path(...).unlink()
-                    ".rmdir(",  # Path(...).rmdir()
-                    "rm -rf",
-                    " rm ",
-                ]
-                risky = any(marker in text for marker in destructive_markers)
-                return "danger" if risky else "safe"
-
-            def classify_shell_risk(command_or_args: object) -> str:
-                """Classify shell risk, robust to list/tuple or string inputs.
-
-                - Treat any `rm` invocation as dangerous (including `rm -rf`)
-                - Otherwise safe
-                """
-                if isinstance(command_or_args, (list, tuple)):
-                    cmd_text = " ".join(str(x) for x in command_or_args)
-                else:
-                    cmd_text = str(command_or_args or "")
-                lower = cmd_text.strip().lower()
-                tokens = lower.split()
-                base = tokens[0] if tokens else ""
-                destructive_bases = {"rm"}
-                risky = (base in destructive_bases) or ("rm -rf" in lower)
-                return "danger" if risky else "safe"
+            # No custom risk classification; rely on Agno's built-in pause + confirmation
 
             # Initialize unified renderer for ToolCall lines
             renderer = StreamRenderer(console)
@@ -608,15 +561,7 @@ def run_interactive(agent) -> int:
                             or "tool"
                         )
                         targs = getattr(tool, "tool_args", None) or {}
-                        risk = "safe"
-                        if tname in ("execute_python_code", "run_python_code"):
-                            risk = classify_python_risk(str(targs.get("code", "")))
-                        elif tname == "run_shell_command":
-                            # Support either string command or args list
-                            cmd_input = targs.get("command", None)
-                            if cmd_input is None:
-                                cmd_input = targs.get("args", None) or targs.get("argv", None)
-                            risk = classify_shell_risk(cmd_input)
+                        # No per-argument risk classification
 
                         # Hard bans: block dangerous system-level commands regardless of mode
                         hard_ban = False
@@ -634,16 +579,15 @@ def run_interactive(agent) -> int:
                             )
                             continue
 
-                        auto_confirm = (confirm_mode == "off") or (
-                            confirm_mode == "auto" and risk == "safe"
-                        )
+                        # Auto mode: still pause Python/Shell for hard-ban checks, then auto-confirm
+                        auto_confirm = (confirm_mode == "auto")
                         if auto_confirm:
                             setattr(tool, "confirmed", True)
                         else:
                             # Show detailed content preview for confirmation
                             preview_group = []
                             header_text = Text(
-                                f"Tool: {tname} • Risk: {risk}", style="bold magenta"
+                                f"Tool: {tname}", style="bold magenta"
                             )
                             preview_group.append(header_text)
                             try:
@@ -711,7 +655,7 @@ def run_interactive(agent) -> int:
                             )
 
                             resp = Prompt.ask(
-                                f"Confirm running tool [magenta]{tname}[/magenta] (risk={risk})?",
+                                f"Confirm running tool [magenta]{tname}[/magenta]?",
                                 choices=["y", "n"],
                                 default="y",
                             )
@@ -775,7 +719,7 @@ def main() -> int:
         current_mode = (
             existing.get("CONFIRM_MODE", os.environ.get("ADORABLE_CONFIRM_MODE", "auto")) or "auto"
         )
-        if len(args) >= 2 and args[1].lower() in {"normal", "auto", "off"}:
+        if len(args) >= 2 and args[1].lower() in {"normal", "auto"}:
             new_mode = args[1].lower()
             existing["CONFIRM_MODE"] = new_mode
             write_kv_file(CONFIG_FILE, existing)
@@ -784,7 +728,7 @@ def main() -> int:
             return 0
         else:
             console.print(f"Current confirm mode: {current_mode}")
-            console.print("Use: adorable mode [normal|auto|off]")
+            console.print(Text("Use: adorable mode [normal|auto]"))
             return 0
 
     # Ensure config and load env
@@ -814,8 +758,7 @@ def apply_confirm_mode_to_agent(agent, mode: str) -> None:
     """Dynamically adjust requires_confirmation flags on the existing agent's tools.
 
     - normal: confirm python, shell, and save_file; others off
-    - auto: confirm python and shell only; others off
-    - off: all off
+    - auto: confirm python and shell only; others off (auto-continue after hard-ban checks)
     """
     try:
         target_true = set()
@@ -827,9 +770,7 @@ def apply_confirm_mode_to_agent(agent, mode: str) -> None:
             target_true = set().union(python_names, shell_names, file_names)
         elif mode == "auto":
             target_true = set().union(python_names, shell_names)
-        elif mode == "off":
-            # In off mode, still pause Python/Shell to allow hard-bans at confirmation layer, then auto-confirm.
-            target_true = set().union(python_names, shell_names)
+        # Deprecated 'off' mode is treated as 'auto' elsewhere; no special handling here.
 
         for tk in getattr(agent, "tools", []):
             functions = getattr(tk, "functions", {})

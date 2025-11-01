@@ -232,15 +232,11 @@ python -m adorable_cli.main
 ### Safety Strategy: Confirmation Modes + Hard Ban Layer
 
 - Modes
-  - `normal`: asks before Python, Shell, and file write operations; risky actions require explicit confirmation.
-  - `auto`: auto-confirms safe actions; asks for potentially destructive actions.
-  - `off`: auto-confirms all except hard-banned commands; shows a brief preview for Python/Shell to allow interception.
+  - `normal`: prompts before Python, Shell, and file write operations.
+  - `auto`: pauses Python/Shell for hard-ban checks, then auto-confirms.
 - Hard bans (always blocked)
   - `rm -rf /` or equivalents targeting root
   - any `sudo` command
-- Risk detection
-  - Python: flags destructive calls such as `os.remove`, `os.unlink`, `shutil.rmtree`, `os.rmdir`, `Path.unlink`, `Path.rmdir`
-  - Shell: flags `rm` variants (e.g., `rm -rf`)
 - Scope & outputs
   - File operations are limited to the current working directory (`cwd`)
   - Execution tools return `str` outputs only

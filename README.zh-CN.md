@@ -215,15 +215,11 @@ adorable --help
 ### 安全策略：确认模式 + 硬禁用层
 
 - 模式
-  - `normal`：Python、Shell 与写文件操作执行前均需确认；检测到可能具破坏性的操作时必须显式确认。
-  - `auto`：对“安全”操作自动确认；对可能“危险”的操作弹窗确认。
-  - `off`：除硬禁用命令外自动确认；Python/Shell 仍提供简短预览以便拦截。
+  - `normal`：Python、Shell 与写文件操作执行前均需确认。
+  - `auto`：Python/Shell 先暂停以进行硬性封禁检查，通过后自动确认继续。
 - 硬禁用（无条件拦截）
   - `rm -rf /`（或同等针对根目录的变体）
   - 任何 `sudo` 命令
-- 风险识别
-  - Python：侦测 `os.remove`、`os.unlink`、`shutil.rmtree`、`os.rmdir`、`Path.unlink`、`Path.rmdir` 等破坏性调用
-  - Shell：侦测 `rm` 变体（例如 `rm -rf`）
 - 作用域与输出
   - 文件操作作用域限定为当前工作目录（`cwd`）
   - 执行工具仅返回 `str` 文本输出
