@@ -24,7 +24,8 @@ from rich.text import Text
 from adorable_cli.prompt import MAIN_AGENT_DESCRIPTION, MAIN_AGENT_INSTRUCTIONS
 from adorable_cli.tools import create_secure_tools
 from adorable_cli.tools.vision_tool import create_image_understanding_tool
-from adorable_cli.ui.stream_renderer import StreamRenderer
+from adorable_cli.ui.enhanced_input import create_enhanced_session
+from adorable_cli.ui.enhanced_renderer_simple import create_simple_enhanced_renderer
 
 CONFIG_PATH = Path.home() / ".adorable"
 CONFIG_FILE = CONFIG_PATH / "config"
@@ -103,11 +104,25 @@ def ensure_config_interactive() -> dict[str, str]:
     missing = [k for k in required_keys if not cfg.get(k, "").strip()]
 
     if missing:
+        setup_message = Text()
+        setup_message.append("🔧 Initial or missing configuration\n", style="bold yellow")
+        setup_message.append("Required variables:\n", style="bold")
+        setup_message.append("• API_KEY\n")
+        setup_message.append("• BASE_URL\n")
+        setup_message.append("• MODEL_ID\n")
+        setup_message.append("• TAVILY_API_KEY\n")
+        setup_message.append("\n")
+        setup_message.append(
+            "💡 Optional: VLM_MODEL_ID for image understanding\n", style="bold cyan"
+        )
+        setup_message.append("(defaults to MODEL_ID if not set)", style="dim")
+
         console.print(
             Panel(
-                "🔧 Initial or missing configuration: please provide four required variables: API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY.\n💡 Optional: VLM_MODEL_ID for image understanding (defaults to MODEL_ID if not set).",
+                setup_message,
                 title="Adorable Setup",
                 border_style="yellow",
+                padding=(0, 1),
             )
         )
 
@@ -148,7 +163,7 @@ def build_agent():
         # Web tools
         TavilyTools(),
         Crawl4aiTools(),
-        # Local file operations limited to the launch directory
+        # Standard file operations
         FileTools(base_dir=Path.cwd(), all=True),
         # User memory tools
         MemoryTools(db=db),
@@ -193,16 +208,16 @@ def build_agent():
 def print_help():
     help_text = Text()
     help_text.append("Adorable CLI - Agno-based command-line assistant\n", style="bold cyan")
-    help_text.append("\nUsage:\n", style="bold")
+    help_text.append("Usage:\n", style="bold")
     help_text.append("  adorable               Enter interactive chat mode\n")
     help_text.append(
         "  adorable config        Configure API_KEY, BASE_URL, TAVILY_API_KEY, MODEL_ID and VLM_MODEL_ID\n"
     )
     help_text.append("  adorable --help        Show help information\n")
-    help_text.append("\nExamples:\n", style="bold")
+    help_text.append("Examples:\n", style="bold")
     help_text.append("  adorable\n")
     help_text.append("  adorable config\n")
-    help_text.append("\nNotes:\n", style="bold")
+    help_text.append("Notes:\n", style="bold")
     help_text.append(
         "  - On first run, you must set four required variables: API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY; configuration is stored at ~/.adorable/config\n"
     )
@@ -217,7 +232,7 @@ def print_help():
         "  - Security: optional ~/.adorable/security.yaml overrides defaults; if absent, built-in safe defaults are used\n"
     )
     help_text.append("  - Press Enter to submit; Ctrl+C/Ctrl+D to exit\n")
-    console.print(Panel(help_text, title="Help", border_style="blue"))
+    console.print(Panel(help_text, title="Help", border_style="blue", padding=(0, 1)))
 
 
 def print_version() -> int:
@@ -240,6 +255,7 @@ def run_config() -> int:
             "Configure API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY, VLM_MODEL_ID",
             title="Adorable Config",
             border_style="yellow",
+            padding=(0, 1),
         )
     )
     CONFIG_PATH.mkdir(parents=True, exist_ok=True)
@@ -259,7 +275,12 @@ def run_config() -> int:
     console.print(Text(f"Current TAVILY_API_KEY: {current_tavily or '(empty)'}", style="cyan"))
     tavily_api_key = input("Enter new TAVILY_API_KEY (leave blank to keep): ")
     console.print(Text(f"Current VLM_MODEL_ID: {current_vlm_model or '(empty)'}", style="cyan"))
-    console.print(Text("VLM_MODEL_ID is used for image understanding (optional, defaults to MODEL_ID)", style="dim"))
+    console.print(
+        Text(
+            "VLM_MODEL_ID is used for image understanding (optional, defaults to MODEL_ID)",
+            style="dim",
+        )
+    )
     vlm_model_id = input("Enter new VLM_MODEL_ID (leave blank to keep): ")
 
     new_cfg = dict(existing)
@@ -298,7 +319,7 @@ def run_interactive(agent) -> int:
         ver = pkg_version("adorable-cli")
     except PackageNotFoundError:
         ver = "version unknown"
-    model_id = os.environ.get("ADORABLE_MODEL_ID", "gpt-4o-mini")
+    model_id = os.environ.get("ADORABLE_MODEL_ID", "gpt-5-mini")
     cwd = str(Path.cwd())
     cfg_path = str(CONFIG_FILE)
 
@@ -313,7 +334,9 @@ def run_interactive(agent) -> int:
         Rule(style="grey37"),
         Text("• Run `uv run ador` to enter interactive mode"),
         Text("• Run `uv run adorable config` to configure API and model"),
-        Text("\nConfig", style="bold dark_orange"),
+        Text("• Enhanced input: History completion, multiline editing"),
+        Text("• Type 'help-input' for enhanced input features"),
+        Text("Config", style="bold dark_orange"),
         Rule(style="grey37"),
         Text(f"Adorable CLI {ver} • Model {model_id}", style="grey58"),
         Text(f"{cwd}", style="grey58"),
@@ -324,27 +347,92 @@ def run_interactive(agent) -> int:
             Columns([left_group, right_group], equal=True, expand=True),
             title="Adorable",
             border_style="dark_orange",
+            padding=(0, 1),
         )
     )
 
-    # Use standard input for interaction (fallback before prompt_toolkit)
+    # Create enhanced input session
+    enhanced_session = create_enhanced_session(console)
+
+    # Enhanced interaction loop with prompt-toolkit
     exit_on = ["exit", "exit()", "quit", "q", "bye"]
+    special_commands = ["help-input", "clear", "cls", "session-stats", "enhanced-mode"]
+
+    console.print("[green]✨ Enhanced CLI enabled![/green]")
+    console.print(
+        "[cyan]🎯 Features: History completion • Multiline editing • Command history[/cyan]"
+    )
+    console.print(
+        "[dim]Input: Enter=submit, Ctrl+J=newline • Type 'help-input' for shortcuts[/dim]"
+    )
+
+    # Create enhanced renderer with basic features only
+    enhanced_renderer = create_simple_enhanced_renderer(
+        console, enable_diff_display=False, enable_confirmations=False
+    )
+
     while True:
         try:
-            user_input = input("> ").strip()
-        except (KeyboardInterrupt, EOFError):
+            # Use enhanced input session
+            user_input = enhanced_session.prompt_user("> ")
+        except KeyboardInterrupt:
             console.print("👋 Bye!", style="yellow")
             return 0
+        except EOFError:
+            break
+
         if not user_input:
             continue
+
+        # Handle special commands
         if user_input.lower() in exit_on:
+            console.print("👋 Bye!", style="yellow")
             break
+        elif user_input.lower() in special_commands:
+            if user_input.lower() == "help-input":
+                enhanced_session.show_quick_help()
+                continue
+            elif user_input.lower() in ["clear", "cls"]:
+                console.clear()
+                continue
+            elif user_input.lower() == "session-stats":
+                console.print(
+                    Panel(
+                        Text(
+                            "📊 Current Session Stats:\n"
+                            "• Enhanced Input: Enabled\n"
+                            "• History Completion: Enabled\n"
+                            "• Multiline Editing: Enabled"
+                        ),
+                        title="Session Stats",
+                        border_style="blue",
+                        padding=(0, 1),
+                    )
+                )
+                continue
+            elif user_input.lower() == "enhanced-mode":
+                console.print(
+                    Panel(
+                        Text(
+                            "🚀 Enhanced Mode Features:\n\n"
+                            "• [cyan]History Input[/cyan]: Command history and auto-completion\n"
+                            "• [green]Multiline Editing[/green]: Support Ctrl+J for newline input\n"
+                            "• [yellow]Smart Suggestions[/yellow]: Command and parameter auto-completion"
+                        ),
+                        title="Enhanced Mode",
+                        border_style="green",
+                        padding=(0, 1),
+                    )
+                )
+                continue
+
         try:
-            # Streamed rendering: custom event-driven renderer
+            # Enhanced streamed rendering with interactive features
             stream = agent.run(user_input, stream=True, stream_intermediate_steps=True)
-            StreamRenderer(console).render_stream(stream)
+            enhanced_renderer.render_stream(stream)
         except Exception as e:
             console.print(f"[red]Error:[/red] {e}")
+
     return 0
 
 

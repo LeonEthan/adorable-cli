@@ -90,7 +90,7 @@ ador --help
   ## 🔧 配置
 </div>
 
-- 默认模型：`gpt-4o-mini`
+- 默认模型：`gpt-5-mini`
 - 配置来源：
   - 交互式：`adorable config`（写入 `~/.adorable/config`）
   - 环境变量：`API_KEY` 或 `OPENAI_API_KEY`；`BASE_URL` 或 `OPENAI_BASE_URL`；`TAVILY_API_KEY`；`ADORABLE_MODEL_ID`
@@ -103,7 +103,7 @@ API_KEY=sk-xxxx
 BASE_URL=https://api.openai.com/v1
 
 # 指定模型（可覆盖默认）
-MODEL_ID=gpt-4o-mini
+MODEL_ID=gpt-5-mini
 
 # 可选：使能联网检索
 TAVILY_API_KEY=tvly-xxxx

@@ -60,9 +60,9 @@ class StreamRenderer:
 
         # Final result display
         self.console.print(
-            Text.from_markup("\n[bold orange3]🐱 Adorable:[/bold orange3]", style="bold orange3")
+            Text.from_markup("[bold orange3]🐱 Adorable:[/bold orange3]", style="bold orange3")
         )
-        self.console.print(Markdown((final_text or "") + "\n"))
+        self.console.print(Markdown(final_text or ""))
 
         # Session footer: time and tokens
         # duration: prefer metrics.duration; fallback to local perf counter

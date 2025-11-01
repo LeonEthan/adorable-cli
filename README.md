@@ -102,7 +102,7 @@ Exit keywords: `exit` / `quit` / `q` / `bye`
 
 </div>
 
-- Default model: `gpt-4o-mini`
+- Default model: `gpt-5-mini`
 - Sources:
   - Interactive: `adorable config` (writes to `~/.adorable/config`)
   - Environment: `API_KEY` or `OPENAI_API_KEY`; `BASE_URL` or `OPENAI_BASE_URL`; `TAVILY_API_KEY`; `ADORABLE_MODEL_ID`
@@ -113,7 +113,7 @@ Example (`~/.adorable/config`):
 API_KEY=sk-xxxx
 BASE_URL=https://api.openai.com/v1
 TAVILY_API_KEY=tvly_xxxx
-MODEL_ID=gpt-4o-mini
+MODEL_ID=gpt-5-mini
 ```
 
 <div align="center">
@@ -232,6 +232,7 @@ python -m adorable_cli.main
 - Style & config: Ruff/Black in `pyproject.toml`, line width `100`
 - CLI entrypoints: `src/adorable_cli/__main__.py`, `src/adorable_cli/main.py`
 - System prompt: `src/adorable_cli/prompt.py`
+- Default model: `gpt-5-mini`
 
 <div align="center">
 
