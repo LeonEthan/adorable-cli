@@ -1,4 +1,3 @@
-import logging
 import os
 import sys
 from importlib.metadata import PackageNotFoundError
@@ -8,6 +7,7 @@ from pathlib import Path
 from agno.agent import Agent
 from agno.db.sqlite import SqliteDb
 from agno.models.openai import OpenAILike
+from agno.session.summary import SessionSummaryManager
 from agno.tools.calculator import CalculatorTools
 from agno.tools.crawl4ai import Crawl4aiTools
 from agno.tools.file import FileTools
@@ -26,6 +26,7 @@ from rich.prompt import Prompt
 from rich.rule import Rule
 from rich.text import Text
 
+from adorable_cli.hooks.context_guard import ensure_context_within_window, restore_context_settings
 from adorable_cli.prompt import MAIN_AGENT_DESCRIPTION, MAIN_AGENT_INSTRUCTIONS
 from adorable_cli.tools.vision_tool import create_image_understanding_tool
 from adorable_cli.ui.enhanced_input import create_enhanced_session
@@ -124,6 +125,11 @@ def ensure_config_interactive() -> dict[str, str]:
             "💡 Optional: VLM_MODEL_ID for image understanding\n", style="bold cyan"
         )
         setup_message.append("(defaults to MODEL_ID if not set)", style="dim")
+        setup_message.append("\n")
+        setup_message.append(
+            "💡 Optional: FAST_MODEL_ID for session summaries\n", style="bold cyan"
+        )
+        setup_message.append("(defaults to MODEL_ID if not set)", style="dim")
 
         console.print(
             Panel(
@@ -161,6 +167,11 @@ def build_agent():
     api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("API_KEY")
     base_url = os.environ.get("OPENAI_BASE_URL") or os.environ.get("BASE_URL")
 
+    # Summary model id can be customized via FAST_MODEL_ID (or ADORABLE_FAST_MODEL_ID)
+    fast_model_id = (
+        os.environ.get("FAST_MODEL_ID") or os.environ.get("ADORABLE_FAST_MODEL_ID") or model_id
+    )
+
     # Shared user memory database
     db = SqliteDb(db_file=str(MEM_DB_PATH))
 
@@ -189,13 +200,33 @@ def build_agent():
         confirm_mode = "auto"
 
     # Debug configuration from environment
-    agno_debug_env = (os.environ.get("AGNO_DEBUG", "").strip().lower())
+    agno_debug_env = os.environ.get("AGNO_DEBUG", "").strip().lower()
     debug_mode = agno_debug_env in {"1", "true", "yes", "on"}
     debug_level_val = os.environ.get("AGNO_DEBUG_LEVEL", "")
     try:
         debug_level = int(debug_level_val) if debug_level_val else None
     except Exception:
         debug_level = None
+
+    # Configure a dedicated fast model for session summaries if provided
+    # Configure SessionSummaryManager to avoid JSON/structured outputs to prevent parsing warnings
+    session_summary_manager = SessionSummaryManager(
+        model=OpenAILike(
+            id=fast_model_id,
+            api_key=api_key,
+            base_url=base_url,
+            # Smaller cap is sufficient for summaries; providers may ignore
+            max_tokens=4096,
+            # Force plain-text outputs for summaries to avoid JSON parsing attempts
+            supports_native_structured_outputs=False,
+            supports_json_schema_outputs=False,
+        ),
+        # Ask for a plain-text summary only; no JSON or lists
+        session_summary_prompt=(
+            "Provide a concise plain-text summary of the recent conversation. "
+            "Do not return JSON, XML, lists, or keys. Return one short paragraph."
+        ),
+    )
 
     main_agent = Agent(
         name="adorable",
@@ -214,6 +245,10 @@ def build_agent():
             "todos": [],
         },
         enable_agentic_state=True,
+        # Enable and include session summaries to reduce long history footprint
+        enable_session_summaries=True,
+        session_summary_manager=session_summary_manager,
+        add_session_summary_to_context=True,
         add_session_state_to_context=True,
         # TODO: subagents/workflow
         # tools
@@ -228,6 +263,13 @@ def build_agent():
         # built-in debug toggles
         debug_mode=debug_mode,
         **({"debug_level": debug_level} if debug_level is not None else {}),
+        # Retry strategy
+        exponential_backoff=True,
+        retries=2,
+        delay_between_retries=1,
+        # Context guard hooks
+        pre_hooks=[ensure_context_within_window],
+        post_hooks=[restore_context_settings],
     )
 
     # Confirmation behavior per mode
@@ -268,7 +310,7 @@ def print_help():
     help_text.append("Usage:\n", style="bold")
     help_text.append("  adorable               Enter interactive chat mode\n")
     help_text.append(
-        "  adorable config        Configure API_KEY, BASE_URL, TAVILY_API_KEY, MODEL_ID and VLM_MODEL_ID\n"
+        "  adorable config        Configure API_KEY, BASE_URL, TAVILY_API_KEY, MODEL_ID, VLM_MODEL_ID, FAST_MODEL_ID\n"
     )
     help_text.append("  adorable mode [normal|auto]   Set or view confirm mode\n")
     help_text.append("  adorable --help        Show help information\n")
@@ -313,7 +355,7 @@ def sanitize(val: str) -> str:
 def run_config() -> int:
     console.print(
         Panel(
-            "Configure API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY, VLM_MODEL_ID",
+            "Configure API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY, VLM_MODEL_ID, FAST_MODEL_ID",
             title="Adorable Config",
             border_style="yellow",
             padding=(0, 1),
@@ -326,6 +368,7 @@ def run_config() -> int:
     current_model = existing.get("MODEL_ID", "")
     current_tavily = existing.get("TAVILY_API_KEY", "")
     current_vlm_model = existing.get("VLM_MODEL_ID", "")
+    current_fast_model = existing.get("FAST_MODEL_ID", "")
 
     console.print(Text(f"Current API_KEY: {current_key or '(empty)'}", style="cyan"))
     api_key = input("Enter new API_KEY (leave blank to keep): ")
@@ -344,6 +387,15 @@ def run_config() -> int:
     )
     vlm_model_id = input("Enter new VLM_MODEL_ID (leave blank to keep): ")
 
+    console.print(Text(f"Current FAST_MODEL_ID: {current_fast_model or '(empty)'}", style="cyan"))
+    console.print(
+        Text(
+            "FAST_MODEL_ID is used for session summaries (optional, defaults to MODEL_ID)",
+            style="dim",
+        )
+    )
+    fast_model_id = input("Enter new FAST_MODEL_ID (leave blank to keep): ")
+
     new_cfg = dict(existing)
     if api_key.strip():
         new_cfg["API_KEY"] = sanitize(api_key)
@@ -355,6 +407,8 @@ def run_config() -> int:
         new_cfg["TAVILY_API_KEY"] = sanitize(tavily_api_key)
     if vlm_model_id.strip():
         new_cfg["VLM_MODEL_ID"] = sanitize(vlm_model_id)
+    if fast_model_id.strip():
+        new_cfg["FAST_MODEL_ID"] = sanitize(fast_model_id)
 
     write_kv_file(CONFIG_FILE, new_cfg)
     load_env_from_config(new_cfg)
@@ -580,15 +634,13 @@ def run_interactive(agent) -> int:
                             continue
 
                         # Auto mode: still pause Python/Shell for hard-ban checks, then auto-confirm
-                        auto_confirm = (confirm_mode == "auto")
+                        auto_confirm = confirm_mode == "auto"
                         if auto_confirm:
                             setattr(tool, "confirmed", True)
                         else:
                             # Show detailed content preview for confirmation
                             preview_group = []
-                            header_text = Text(
-                                f"Tool: {tname}", style="bold magenta"
-                            )
+                            header_text = Text(f"Tool: {tname}", style="bold magenta")
                             preview_group.append(header_text)
                             try:
                                 if tname == "execute_python_code":

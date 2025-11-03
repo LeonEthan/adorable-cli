@@ -105,7 +105,7 @@ Exit keywords: `exit` / `quit` / `q` / `bye`
 - Default model: `gpt-5-mini`
 - Sources:
   - Interactive: `adorable config` (writes to `~/.adorable/config`)
-  - Environment: `API_KEY` or `OPENAI_API_KEY`; `BASE_URL` or `OPENAI_BASE_URL`; `TAVILY_API_KEY`; `ADORABLE_MODEL_ID`
+  - Environment: `API_KEY` or `OPENAI_API_KEY`; `BASE_URL` or `OPENAI_BASE_URL`; `TAVILY_API_KEY`; `ADORABLE_MODEL_ID`; `FAST_MODEL_ID`
 
 Example (`~/.adorable/config`):
 
@@ -114,7 +114,37 @@ API_KEY=sk-xxxx
 BASE_URL=https://api.openai.com/v1
 TAVILY_API_KEY=tvly_xxxx
 MODEL_ID=gpt-5-mini
+FAST_MODEL_ID=gpt-5-mini
 ```
+
+### Context Window Guard
+
+To prevent model context overflow, Adorable includes a context guard with safe defaults. You can tune it via environment variables:
+
+- `ADORABLE_CONTEXT_WINDOW`: Override the model context window in tokens (e.g., `131072`).
+- `ADORABLE_CTX_MARGIN`: Safety margin in tokens (default `1024`). Supports percentages like `"5%"`.
+- `ADORABLE_CTX_AVG_RUN_TOKENS`: Approximate tokens per history run for budgeting (default `512`).
+- `ADORABLE_CTX_HISTORY_STRATEGY`: History budgeting strategy: `avg_only` (default) or `exact_when_possible` to estimate recent runs using actual messages when accessible.
+- `ADORABLE_CTX_INPUT_STRATEGY`: Input compression strategy when needed: `tail_head` (default), `hybrid` (preserve first fenced code block), or `summarize` (currently falls back to tail/head without external calls).
+- `ADORABLE_VLM_IMAGE_TOKENS_PER_IMAGE`: Per-image token budget for VLM inputs (default `0` – disabled). Set a conservative value (e.g., `4096`) to account for image payloads.
+
+These settings help the agent trim history or lightly compress very long inputs before a run so that `(system + input + history) + max_tokens` remains within the model window.
+
+#### Session Summary Integration
+
+Agno 内置会话摘要可在历史较长时生成精炼摘要，并可选择加入上下文以替代大段历史，从而降低 token 压力并保持语义连续性。
+
+- 在 Agent 配置中启用并加入摘要：
+  - `enable_session_summaries=True`
+  - `add_session_summary_to_context=True`
+- 当以上选项开启时，Adorable 的 `context_guard` 会在预算预览中包含当前会话摘要文本，以更准确估算上下文体积；随后仍按既定策略优先削减历史、必要时轻量压缩输入。
+- 建议与 `ADORABLE_CTX_HISTORY_STRATEGY=exact_when_possible` 配合使用，以获得更精确的历史体积估算。
+
+注意：若摘要不可用或获取失败，`context_guard` 将自动回退到占位估算，保证稳健性。
+
+自定义会话摘要（Customize Session Summaries）
+- 使用 `FAST_MODEL_ID` 为摘要选择更快的模型（OpenAI 兼容，`OpenAILike`）；未设置时默认与主模型一致。
+- 可在 `adorable config` 中设置 `FAST_MODEL_ID`，或通过环境变量注入；摘要模型只用于 SessionSummaryManager，不影响主回复模型。
 
 <div align="center">
 

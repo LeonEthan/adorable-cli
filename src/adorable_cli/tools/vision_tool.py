@@ -6,6 +6,10 @@ from agno.agent import Agent
 from agno.media import Image
 from agno.models.openai import OpenAILike
 from agno.tools import Toolkit
+from adorable_cli.hooks.context_guard import (
+    ensure_context_within_window,
+    restore_context_settings,
+)
 
 
 class ImageUnderstandingTool(Toolkit):
@@ -42,6 +46,9 @@ class ImageUnderstandingTool(Toolkit):
             # Disable unnecessary features to optimize performance
             enable_agentic_state=False,
             add_history_to_context=False,
+            # Context guard hooks (protect smaller VLM window)
+            pre_hooks=[ensure_context_within_window],
+            post_hooks=[restore_context_settings],
         )
 
     def analyze_image(self, image_path: str, query: Optional[str] = None) -> str:

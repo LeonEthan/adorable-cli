@@ -93,7 +93,7 @@ ador --help
 - 默认模型：`gpt-5-mini`
 - 配置来源：
   - 交互式：`adorable config`（写入 `~/.adorable/config`）
-  - 环境变量：`API_KEY` 或 `OPENAI_API_KEY`；`BASE_URL` 或 `OPENAI_BASE_URL`；`TAVILY_API_KEY`；`ADORABLE_MODEL_ID`
+  - 环境变量：`API_KEY` 或 `OPENAI_API_KEY`；`BASE_URL` 或 `OPENAI_BASE_URL`；`TAVILY_API_KEY`；`ADORABLE_MODEL_ID`；`FAST_MODEL_ID`
 
 示例（`~/.adorable/config`）：
 
@@ -105,9 +105,39 @@ BASE_URL=https://api.openai.com/v1
 # 指定模型（可覆盖默认）
 MODEL_ID=gpt-5-mini
 
+# 可选：为会话摘要指定更快的模型（OpenAI 兼容）
+FAST_MODEL_ID=gpt-5-mini
+
 # 可选：使能联网检索
 TAVILY_API_KEY=tvly-xxxx
 ```
+
+### 上下文窗口守卫（Context Window Guard）
+
+为避免模型上下文溢出，Adorable 提供了带安全默认值的上下文守卫。你可以通过以下环境变量进行调优：
+
+- `ADORABLE_CONTEXT_WINDOW`：覆盖模型上下文窗口大小（单位 token，例如 `131072`）。
+- `ADORABLE_CTX_MARGIN`：安全边距（默认 `1024`）；支持百分比，如 `"5%"`。
+- `ADORABLE_CTX_AVG_RUN_TOKENS`：历史单次运行的平均 token 预算（默认 `512`）。
+- `ADORABLE_CTX_HISTORY_STRATEGY`：历史预算策略；`avg_only`（默认）或 `exact_when_possible`（可在可访问时用实际消息估算最近几次）。
+- `ADORABLE_CTX_INPUT_STRATEGY`：必要时的输入压缩策略；`tail_head`（默认）、`hybrid`（保留首个围栏代码块），或 `summarize`（当前在无外部调用时降级为 tail/head）。
+- `ADORABLE_VLM_IMAGE_TOKENS_PER_IMAGE`：VLM 输入的单图 token 预算（默认 `0`，即禁用）。如需计入图片负载，可设置保守值（例如 `4096`）。
+
+这些设置帮助智能体在运行前根据预算裁剪历史或轻度压缩超长输入，以确保 `(system + input + history) + max_tokens` 始终在模型上下文窗口内。
+
+#### 会话摘要集成（Session Summary Integration）
+
+Agno 内置会话摘要可在历史较长时生成精炼摘要，并可选择加入上下文以替代大段历史，从而降低 token 压力并保持语义连续性。
+
+- 在 Agent 配置中启用并加入摘要：
+  - `enable_session_summaries=True`
+  - `add_session_summary_to_context=True`
+- 当以上选项开启时，Adorable 的 `context_guard` 会在预算预览中包含当前会话摘要文本，以更准确估算上下文体积；随后仍按既定策略优先削减历史、必要时轻量压缩输入。
+- 若摘要不可用或获取失败，`context_guard` 将自动回退到占位估算，保证稳健性。
+
+自定义会话摘要
+- 通过 `FAST_MODEL_ID` 为摘要选择更快的模型（OpenAI 兼容，`OpenAILike`）；未设置时默认与主模型一致。
+- 可在 `adorable config` 中设置 `FAST_MODEL_ID`，或通过环境变量注入；摘要模型仅用于 SessionSummaryManager，不影响主回复模型。
 
 <div align="center">
   <a id="capabilities"></a>
@@ -159,6 +189,12 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -e .
 adorable --help
+```
+
+模块方式运行：
+
+```
+python -m adorable_cli.main
 ```
 
 <div align="center">
