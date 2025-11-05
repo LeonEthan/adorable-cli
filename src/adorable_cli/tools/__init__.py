@@ -1,33 +1,11 @@
-"""Secure execution tools package - extensions over Agno native tools
+"""Tool package
 
-Provides secure Python and Shell code execution functionality.
+This package currently exposes vision tool factory. Default Agno tools
+should be imported directly from `agno.tools` modules.
 """
 
-from .secure_python import create_secure_python_tools
-from .secure_shell import create_secure_shell_tools
-from .security_config import security_config
-from .execution_context import ExecutionContext
-
-
-def create_secure_tools(base_dir=None):
-    """Create all secure tools"""
-    tools = []
-    
-    # Add secure Python tools
-    python_tools = create_secure_python_tools(base_dir=base_dir)
-    tools.append(python_tools)
-    
-    # Add secure Shell tools  
-    shell_tools = create_secure_shell_tools(base_dir=base_dir)
-    tools.append(shell_tools)
-    
-    return tools
-
+from .vision_tool import create_image_understanding_tool
 
 __all__ = [
-    'create_secure_tools',
-    'create_secure_python_tools', 
-    'create_secure_shell_tools',
-    'security_config',
-    'ExecutionContext'
+    'create_image_understanding_tool',
 ]
