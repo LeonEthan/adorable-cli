@@ -176,7 +176,7 @@ def build_agent():
     db = SqliteDb(db_file=str(MEM_DB_PATH))
 
     team_tools = [
-        ReasoningTools(),
+        ReasoningTools(add_instructions=True),
         # Calculator tools for numerical calculations and verification
         CalculatorTools(),
         # Web tools
