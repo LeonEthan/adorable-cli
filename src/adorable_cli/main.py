@@ -176,7 +176,7 @@ def build_agent():
     db = SqliteDb(db_file=str(MEM_DB_PATH))
 
     team_tools = [
-        ReasoningTools(),
+        ReasoningTools(add_instructions=True),
         # Calculator tools for numerical calculations and verification
         CalculatorTools(),
         # Web tools
@@ -245,19 +245,20 @@ def build_agent():
             "todos": [],
         },
         enable_agentic_state=True,
-        # Enable and include session summaries to reduce long history footprint
-        enable_session_summaries=True,
-        session_summary_manager=session_summary_manager,
-        add_session_summary_to_context=True,
         add_session_state_to_context=True,
         # TODO: subagents/workflow
         # tools
         tools=team_tools,
         # memory
         db=db,
-        # Make the agent aware of the session history
+        # Long-term memory
+        enable_session_summaries=True,
+        session_summary_manager=session_summary_manager,
+        add_session_summary_to_context=True,
+        # Short-term memory
         add_history_to_context=True,
         num_history_runs=3,
+        max_tool_calls_from_history=3,
         # output format
         markdown=True,
         # built-in debug toggles
