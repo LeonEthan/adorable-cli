@@ -1,9 +1,12 @@
 import os
-import sys
+from datetime import datetime
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as pkg_version
 from pathlib import Path
+from time import perf_counter
+from typing import Optional
 
+import typer
 from agno.agent import Agent
 from agno.db.sqlite import SqliteDb
 from agno.models.openai import OpenAILike
@@ -24,7 +27,9 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.rule import Rule
+from rich.syntax import Syntax
 from rich.text import Text
+from rich.theme import Theme
 
 from adorable_cli.hooks.context_guard import ensure_context_within_window, restore_context_settings
 from adorable_cli.prompt import MAIN_AGENT_DESCRIPTION, MAIN_AGENT_INSTRUCTIONS
@@ -37,6 +42,34 @@ CONFIG_PATH = Path.home() / ".adorable"
 CONFIG_FILE = CONFIG_PATH / "config"
 MEM_DB_PATH = CONFIG_PATH / "memory.db"
 console = Console()
+app = typer.Typer(add_completion=False)
+_APP_THEME = Theme(
+    {
+        "header": "bold orange3",
+        "muted": "grey58",
+        "tip": "bold dark_orange",
+        "panel_border": "blue",
+        "rule_light": "grey37",
+        "panel_title": "bold white",
+        "info": "cyan",
+        "success": "green",
+        "error": "red",
+        "warning": "yellow",
+        "tool_line": "cyan",
+        "tool_name": "magenta",
+        "cat_primary": "sandy_brown",
+        "cat_secondary": "navajo_white1",
+        "cat_accent": "black",
+    }
+)
+
+
+def _configure_console(plain: bool) -> None:
+    global console
+    if plain:
+        console = Console(no_color=True)
+    else:
+        console = Console(theme=_APP_THEME)
 
 
 def configure_logging() -> None:
@@ -114,28 +147,24 @@ def ensure_config_interactive() -> dict[str, str]:
 
     if missing:
         setup_message = Text()
-        setup_message.append("🔧 Initial or missing configuration\n", style="bold yellow")
+        setup_message.append("🔧 Initial or missing configuration\n", style="warning")
         setup_message.append("Required variables:\n", style="bold")
         setup_message.append("• API_KEY\n")
         setup_message.append("• BASE_URL\n")
         setup_message.append("• MODEL_ID\n")
         setup_message.append("• TAVILY_API_KEY\n")
         setup_message.append("\n")
-        setup_message.append(
-            "💡 Optional: VLM_MODEL_ID for image understanding\n", style="bold cyan"
-        )
-        setup_message.append("(defaults to MODEL_ID if not set)", style="dim")
+        setup_message.append("💡 Optional: VLM_MODEL_ID for image understanding\n", style="info")
+        setup_message.append("(defaults to MODEL_ID if not set)", style="muted")
         setup_message.append("\n")
-        setup_message.append(
-            "💡 Optional: FAST_MODEL_ID for session summaries\n", style="bold cyan"
-        )
-        setup_message.append("(defaults to MODEL_ID if not set)", style="dim")
+        setup_message.append("💡 Optional: FAST_MODEL_ID for session summaries\n", style="info")
+        setup_message.append("(defaults to MODEL_ID if not set)", style="muted")
 
         console.print(
             Panel(
                 setup_message,
-                title="Adorable Setup",
-                border_style="yellow",
+                title=Text("Adorable Setup", style="panel_title"),
+                border_style="panel_border",
                 padding=(0, 1),
             )
         )
@@ -145,14 +174,14 @@ def ensure_config_interactive() -> dict[str, str]:
                 v = input(f"Enter {label}: ").strip()
                 if v:
                     return sanitize(v)
-                console.print(f"{label} cannot be empty.", style="red")
+                console.print(f"{label} cannot be empty.", style="error")
 
         for key in required_keys:
             if not cfg.get(key, "").strip():
                 cfg[key] = prompt_required(key)
 
         write_kv_file(CONFIG_FILE, cfg)
-        console.print(f"✅ Saved to {CONFIG_FILE}", style="green")
+        console.print(f"✅ Saved to {CONFIG_FILE}", style="success")
 
     # Load configuration into environment variables
     load_env_from_config(cfg)
@@ -305,40 +334,6 @@ def build_agent():
     return main_agent
 
 
-def print_help():
-    help_text = Text()
-    help_text.append("Adorable CLI - Agno-based command-line assistant\n", style="bold cyan")
-    help_text.append("Usage:\n", style="bold")
-    help_text.append("  adorable               Enter interactive chat mode\n")
-    help_text.append(
-        "  adorable config        Configure API_KEY, BASE_URL, TAVILY_API_KEY, MODEL_ID, VLM_MODEL_ID, FAST_MODEL_ID\n"
-    )
-    help_text.append("  adorable mode [normal|auto]   Set or view confirm mode\n")
-    help_text.append("  adorable --help        Show help information\n")
-    help_text.append("Examples:\n", style="bold")
-    help_text.append("  adorable\n")
-    help_text.append("  adorable config\n")
-    help_text.append("Notes:\n", style="bold")
-    help_text.append(
-        "  - On first run, you must set four required variables: API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY; configuration is stored at ~/.adorable/config\n"
-    )
-    help_text.append("  - MODEL_ID can be set via `adorable config` (e.g., glm-4-flash)\n")
-    help_text.append(
-        "  - VLM_MODEL_ID is optional and used for image understanding; defaults to MODEL_ID if not set\n"
-    )
-    help_text.append(
-        "  - TAVILY_API_KEY is set via `adorable config` to enable web search (Tavily)\n"
-    )
-    help_text.append(
-        "  - Security: built-in safety policy enforced by the confirmation layer; no external security.yaml\n"
-    )
-    help_text.append(
-        "  - Confirm Mode: 'normal' prompts before tool runs; 'auto' pauses Python/Shell for hard-bans then auto-confirms\n"
-    )
-    help_text.append("  - Press Enter to submit; Ctrl+C/Ctrl+D to exit\n")
-    console.print(Panel(help_text, title="Help", border_style="blue", padding=(0, 1)))
-
-
 def print_version() -> int:
     try:
         ver = pkg_version("adorable-cli")
@@ -353,12 +348,34 @@ def sanitize(val: str) -> str:
     return val.strip().strip('"').strip("'").strip("`")
 
 
+def detect_language_from_extension(file_path: str) -> str:
+    try:
+        ext = Path(file_path).suffix.lower()
+    except Exception:
+        ext = ""
+    mapping = {
+        ".py": "python",
+        ".sh": "bash",
+        ".bash": "bash",
+        ".js": "javascript",
+        ".ts": "typescript",
+        ".json": "json",
+        ".md": "markdown",
+        ".yaml": "yaml",
+        ".yml": "yaml",
+        ".toml": "toml",
+        ".html": "html",
+        ".css": "css",
+    }
+    return mapping.get(ext, "")
+
+
 def run_config() -> int:
     console.print(
         Panel(
             "Configure API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY, VLM_MODEL_ID, FAST_MODEL_ID",
-            title="Adorable Config",
-            border_style="yellow",
+            title=Text("Adorable Config", style="panel_title"),
+            border_style="panel_border",
             padding=(0, 1),
         )
     )
@@ -371,28 +388,28 @@ def run_config() -> int:
     current_vlm_model = existing.get("VLM_MODEL_ID", "")
     current_fast_model = existing.get("FAST_MODEL_ID", "")
 
-    console.print(Text(f"Current API_KEY: {current_key or '(empty)'}", style="cyan"))
+    console.print(Text(f"Current API_KEY: {current_key or '(empty)'}", style="info"))
     api_key = input("Enter new API_KEY (leave blank to keep): ")
-    console.print(Text(f"Current BASE_URL: {current_url or '(empty)'}", style="cyan"))
+    console.print(Text(f"Current BASE_URL: {current_url or '(empty)'}", style="info"))
     base_url = input("Enter new BASE_URL (leave blank to keep): ")
-    console.print(Text(f"Current MODEL_ID: {current_model or '(empty)'}", style="cyan"))
+    console.print(Text(f"Current MODEL_ID: {current_model or '(empty)'}", style="info"))
     model_id = input("Enter new MODEL_ID (leave blank to keep): ")
-    console.print(Text(f"Current TAVILY_API_KEY: {current_tavily or '(empty)'}", style="cyan"))
+    console.print(Text(f"Current TAVILY_API_KEY: {current_tavily or '(empty)'}", style="info"))
     tavily_api_key = input("Enter new TAVILY_API_KEY (leave blank to keep): ")
-    console.print(Text(f"Current VLM_MODEL_ID: {current_vlm_model or '(empty)'}", style="cyan"))
+    console.print(Text(f"Current VLM_MODEL_ID: {current_vlm_model or '(empty)'}", style="info"))
     console.print(
         Text(
             "VLM_MODEL_ID is used for image understanding (optional, defaults to MODEL_ID)",
-            style="dim",
+            style="muted",
         )
     )
     vlm_model_id = input("Enter new VLM_MODEL_ID (leave blank to keep): ")
 
-    console.print(Text(f"Current FAST_MODEL_ID: {current_fast_model or '(empty)'}", style="cyan"))
+    console.print(Text(f"Current FAST_MODEL_ID: {current_fast_model or '(empty)'}", style="info"))
     console.print(
         Text(
             "FAST_MODEL_ID is used for session summaries (optional, defaults to MODEL_ID)",
-            style="dim",
+            style="muted",
         )
     )
     fast_model_id = input("Enter new FAST_MODEL_ID (leave blank to keep): ")
@@ -413,21 +430,21 @@ def run_config() -> int:
 
     write_kv_file(CONFIG_FILE, new_cfg)
     load_env_from_config(new_cfg)
-    console.print(f"✅ Saved to {CONFIG_FILE}", style="green")
+    console.print(f"✅ Saved to {CONFIG_FILE}", style="success")
     return 0
 
 
 def run_interactive(agent) -> int:
     # Claude Code-style welcome UI: two-column layout + simple pixel icon
     pixel_sprite = r"""
-[sandy_brown]      ████          ████      [/sandy_brown]
-[sandy_brown]      ██[/sandy_brown][navajo_white1]██[/navajo_white1][sandy_brown]██      ██[/sandy_brown][navajo_white1]██[/navajo_white1][sandy_brown]██[/sandy_brown]
-[sandy_brown]      ██[/sandy_brown][navajo_white1]████[/navajo_white1][sandy_brown]██████[/sandy_brown][navajo_white1]████[/navajo_white1][sandy_brown]██[/sandy_brown]
-[sandy_brown]    ██[/sandy_brown][navajo_white1]██████████████████[/navajo_white1][sandy_brown]██[/sandy_brown]
-[sandy_brown]    ██[/sandy_brown][navajo_white1]████[/navajo_white1][black]██[/black][navajo_white1]██████[/navajo_white1][black]██[/black][navajo_white1]████[/navajo_white1][sandy_brown]██[/sandy_brown]
-[sandy_brown]    ██[/sandy_brown][navajo_white1]██████████████████[/navajo_white1][sandy_brown]██[/sandy_brown]
-[sandy_brown]    ████[/sandy_brown][navajo_white1]██████████████[/navajo_white1][sandy_brown]████[/sandy_brown]
-[sandy_brown]        ██████████████[/sandy_brown]
+[cat_primary]      ████          ████      [/cat_primary]
+[cat_primary]      ██[/cat_primary][cat_secondary]██[/cat_secondary][cat_primary]██      ██[/cat_primary][cat_secondary]██[/cat_secondary][cat_primary]██[/cat_primary]
+[cat_primary]      ██[/cat_primary][cat_secondary]████[/cat_secondary][cat_primary]██████[/cat_primary][cat_secondary]████[/cat_secondary][cat_primary]██[/cat_primary]
+[cat_primary]    ██[/cat_primary][cat_secondary]██████████████████[/cat_secondary][cat_primary]██[/cat_primary]
+[cat_primary]    ██[/cat_primary][cat_secondary]████[/cat_secondary][cat_accent]██[/cat_accent][cat_secondary]██████[/cat_secondary][cat_accent]██[/cat_accent][cat_secondary]████[/cat_secondary][cat_primary]██[/cat_primary]
+[cat_primary]    ██[/cat_primary][cat_secondary]██████████████████[/cat_secondary][cat_primary]██[/cat_primary]
+[cat_primary]    ████[/cat_primary][cat_secondary]██████████████[/cat_secondary][cat_primary]████[/cat_primary]
+[cat_primary]        ██████████████[/cat_primary]
 """
 
     # Left panel: show larger pixel cat image (preserve more lines)
@@ -439,7 +456,7 @@ def run_interactive(agent) -> int:
     cwd = str(Path.cwd())
 
     left_group = Group(
-        Align.center(Text("Welcome use Adorable CLI!", style="bold white")),
+        Align.center(Text("Welcome use Adorable CLI!", style="header")),
         Align.center(Text.from_markup(pixel_sprite)),
     )
 
@@ -448,24 +465,24 @@ def run_interactive(agent) -> int:
     confirm_mode = os.environ.get("ADORABLE_CONFIRM_MODE", "auto").strip() or "auto"
 
     right_group = Group(
-        Text("Tips for getting started", style="bold dark_orange"),
-        Rule(style="grey37"),
-        Text("• Run `uv run ador` to enter interactive mode"),
-        Text("• Run `uv run adorable config` to configure API and model"),
-        Text("• Enhanced input: History completion, multiline editing"),
-        Text("• Type 'help-input' for enhanced input features"),
-        Text("Config", style="bold dark_orange"),
-        Rule(style="grey37"),
-        Text(f"Adorable CLI {ver} • Model {model_id}", style="grey58"),
-        Text(f"Confirm Mode: {confirm_mode}", style="grey58"),
-        Text(f"{cwd}", style="grey58"),
+        Text("Tips for getting started", style="tip"),
+        Rule(style="rule_light"),
+        Text("• Run `uv run ador` to enter interactive mode", style="muted"),
+        Text("• Run `uv run adorable config` to configure API and model", style="muted"),
+        Text("• Enhanced input: History completion, multiline editing", style="muted"),
+        Text("• Type 'help-input' for enhanced input features", style="muted"),
+        Text("Config", style="tip"),
+        Rule(style="rule_light"),
+        Text(f"Adorable CLI {ver} • Model {model_id}", style="muted"),
+        Text(f"Confirm Mode: {confirm_mode}", style="muted"),
+        Text(f"{cwd}", style="muted"),
     )
 
     console.print(
         Panel(
             Columns([left_group, right_group], equal=True, expand=True),
-            title="Adorable",
-            border_style="dark_orange",
+            title=Text("Adorable", style="panel_title"),
+            border_style="panel_border",
             padding=(0, 1),
         )
     )
@@ -477,12 +494,12 @@ def run_interactive(agent) -> int:
     exit_on = ["exit", "exit()", "quit", "q", "bye"]
     special_commands = ["help-input", "clear", "cls", "session-stats", "enhanced-mode"]
 
-    console.print("[green]✨ Enhanced CLI enabled![/green]")
+    console.print("[success]✨ Enhanced CLI enabled![/success]")
     console.print(
-        "[cyan]🎯 Features: History completion • Multiline editing • Command history[/cyan]"
+        "[tip]🎯 Features: History completion • Multiline editing • Command history[/tip]"
     )
     console.print(
-        "[dim]Input: Enter=submit, Ctrl+J=newline • Type 'help-input' for shortcuts[/dim]"
+        "[muted]Input: Enter=submit, Ctrl+J=newline • Type 'help-input' for shortcuts[/muted]"
     )
 
     # Stream rendering handled in loop with unified StreamRenderer
@@ -492,7 +509,7 @@ def run_interactive(agent) -> int:
             # Use enhanced input session
             user_input = enhanced_session.prompt_user("> ")
         except KeyboardInterrupt:
-            console.print("👋 Bye!", style="yellow")
+            console.print("👋 Bye!", style="warning")
             return 0
         except EOFError:
             break
@@ -502,7 +519,7 @@ def run_interactive(agent) -> int:
 
         # Handle special commands
         if user_input.lower() in exit_on:
-            console.print("👋 Bye!", style="yellow")
+            console.print("👋 Bye!", style="warning")
             break
         # Session-level confirm mode commands: /auto, /normal
         if user_input.strip().lower() in {"/auto", "/normal"}:
@@ -511,14 +528,19 @@ def run_interactive(agent) -> int:
             apply_confirm_mode_to_agent(agent, new_mode)
             # Update local session confirm_mode for subsequent auto_confirm logic
             confirm_mode = new_mode
-            console.print(f"✅ Switched confirm mode to: {new_mode}", style="green")
+            console.print(f"✅ Switched confirm mode to: {new_mode}", style="success")
             # Show lightweight status panel
             status = Group(
-                Text(f"Confirm Mode: {new_mode}", style="grey58"),
-                Text("Subsequent tool calls will follow the new mode", style="grey58"),
+                Text(f"Confirm Mode: {new_mode}", style="muted"),
+                Text("Subsequent tool calls will follow the new mode", style="muted"),
             )
             console.print(
-                Panel(status, title="Session Update", border_style="blue", padding=(0, 1))
+                Panel(
+                    status,
+                    title=Text("Session Update", style="panel_title"),
+                    border_style="panel_border",
+                    padding=(0, 1),
+                )
             )
             continue
         elif user_input.lower() in special_commands:
@@ -535,10 +557,11 @@ def run_interactive(agent) -> int:
                             "📊 Current Session Stats:\n"
                             "• Enhanced Input: Enabled\n"
                             "• History Completion: Enabled\n"
-                            "• Multiline Editing: Enabled"
+                            "• Multiline Editing: Enabled",
+                            style="muted",
                         ),
-                        title="Session Stats",
-                        border_style="blue",
+                        title=Text("Session Stats", style="panel_title"),
+                        border_style="panel_border",
                         padding=(0, 1),
                     )
                 )
@@ -548,12 +571,12 @@ def run_interactive(agent) -> int:
                     Panel(
                         Text(
                             "🚀 Enhanced Mode Features:\n\n"
-                            "• [cyan]History Input[/cyan]: Command history and auto-completion\n"
-                            "• [green]Multiline Editing[/green]: Support Ctrl+J for newline input\n"
-                            "• [yellow]Smart Suggestions[/yellow]: Command and parameter auto-completion"
+                            "• [info]History Input[/info]: Command history and auto-completion\n"
+                            "• [success]Multiline Editing[/success]: Support Ctrl+J for newline input\n"
+                            "• [warning]Smart Suggestions[/warning]: Command and parameter auto-completion",
                         ),
-                        title="Enhanced Mode",
-                        border_style="green",
+                        title=Text("Enhanced Mode", style="panel_title"),
+                        border_style="panel_border",
                         padding=(0, 1),
                     )
                 )
@@ -563,6 +586,8 @@ def run_interactive(agent) -> int:
             # Streamed rendering with HITL confirmations
             final_text = ""
             final_metrics = None
+            start_at = datetime.now()
+            start_perf = perf_counter()
             stream = agent.run(user_input, stream=True, stream_intermediate_steps=True)
 
             # Helper: summarize args like StreamRenderer
@@ -630,7 +655,9 @@ def run_interactive(agent) -> int:
                         if hard_ban:
                             setattr(tool, "confirmed", False)
                             console.print(
-                                Text.from_markup("[red]Blocked dangerous command (hard-ban)[/red]")
+                                Text.from_markup(
+                                    "[error]Blocked dangerous command (hard-ban)[/error]"
+                                )
                             )
                             continue
 
@@ -641,22 +668,30 @@ def run_interactive(agent) -> int:
                         else:
                             # Show detailed content preview for confirmation
                             preview_group = []
-                            header_text = Text(f"Tool: {tname}", style="bold magenta")
+                            header_text = Text(f"Tool: {tname}", style="tool_name")
                             preview_group.append(header_text)
                             try:
                                 if tname == "execute_python_code":
                                     code = str(targs.get("code", ""))
-                                    # Limit huge code blocks for readability
                                     code_display = (
                                         code if len(code) <= 2000 else (code[:1970] + "...")
                                     )
                                     preview_group.append(
-                                        Text.from_markup(f"```python\n{code_display}\n```")
+                                        Syntax(
+                                            code_display,
+                                            "python",
+                                            theme="monokai",
+                                            line_numbers=False,
+                                        )
                                     )
                                 elif tname == "run_shell_command":
                                     cmd = get_shell_text(targs)
                                     cmd_display = cmd if len(cmd) <= 1000 else (cmd[:970] + "...")
-                                    preview_group.append(Text(f"```bash\n{cmd_display}\n```"))
+                                    preview_group.append(
+                                        Syntax(
+                                            cmd_display, "bash", theme="monokai", line_numbers=False
+                                        )
+                                    )
                                 elif tname == "save_file":
                                     # Support multiple arg names used by FileTools
                                     file_path = str(
@@ -680,35 +715,44 @@ def run_interactive(agent) -> int:
                                         else (content[:1970] + "...")
                                     )
                                     info = (
-                                        Text(f"Save path: {file_path}", style="cyan")
+                                        Text(f"Save path: {file_path}", style="info")
                                         if file_path
-                                        else Text("Save path not provided", style="red")
+                                        else Text("Save path not provided", style="error")
                                     )
                                     preview_group.append(info)
                                     if content_display:
-                                        preview_group.append(
-                                            Text.from_markup(f"```\n{content_display}\n```")
-                                        )
+                                        lang = detect_language_from_extension(file_path)
+                                        if lang:
+                                            preview_group.append(
+                                                Syntax(
+                                                    content_display,
+                                                    lang,
+                                                    theme="monokai",
+                                                    line_numbers=False,
+                                                )
+                                            )
+                                        else:
+                                            preview_group.append(Text(content_display))
                                 else:
                                     # Generic args preview
                                     summary = summarize_args(
                                         targs if isinstance(targs, dict) else {}
                                     )
-                                    preview_group.append(Text(f"Args: {summary}", style="cyan"))
+                                    preview_group.append(Text(f"Args: {summary}", style="info"))
                             except Exception:
                                 pass
 
                             console.print(
                                 Panel(
                                     Group(*preview_group),
-                                    title="Tool Call Preview",
-                                    border_style="cyan",
+                                    title=Text("Tool Call Preview", style="panel_title"),
+                                    border_style="panel_border",
                                     padding=(0, 1),
                                 )
                             )
 
                             resp = Prompt.ask(
-                                f"Confirm running tool [magenta]{tname}[/magenta]?",
+                                f"Confirm running tool [tool_name]{tname}[/tool_name]?",
                                 choices=["y", "n"],
                                 default="y",
                             )
@@ -726,81 +770,102 @@ def run_interactive(agent) -> int:
 
             # Final result display
             # Use Text with style instead of passing style to from_markup (unsupported)
-            console.print(Text("🐱 Adorable:", style="bold orange3"))
+            console.print(Text("🐱 Adorable:", style="header"))
             console.print(Markdown(final_text or ""))
 
-            # Session footer: time and tokens (no start time here; keep metrics if available)
-            input_tokens = None
-            output_tokens = None
-            total_tokens = None
-            if final_metrics is not None:
-                input_tokens = getattr(final_metrics, "input_tokens", None)
-                output_tokens = getattr(final_metrics, "output_tokens", None)
-                total_tokens = getattr(final_metrics, "total_tokens", None)
-            if any(v is not None for v in (input_tokens, output_tokens, total_tokens)):
-                tokens_line = Text(
-                    f"🔢 Tokens: input {input_tokens if input_tokens is not None else '?'} • output {output_tokens if output_tokens is not None else '?'} • total {total_tokens if total_tokens is not None else '?'}",
-                    style="grey58",
-                )
-                console.print(tokens_line)
-        except Exception as e:
-            console.print(f"[red]Error:[/red] {e}")
+            renderer.render_footer(final_metrics, start_at, start_perf)
+        except Exception:
+            console.print_exception()
 
     return 0
 
 
-def main() -> int:
-    # Version handling
-    if any(arg in ("-V", "--version") for arg in sys.argv[1:]):
-        return print_version()
+@app.callback(invoke_without_command=True)
+def app_entry(
+    ctx: typer.Context,
+    model: Optional[str] = typer.Option(None, "--model"),
+    base_url: Optional[str] = typer.Option(None, "--base-url"),
+    api_key: Optional[str] = typer.Option(None, "--api-key"),
+    fast_model: Optional[str] = typer.Option(None, "--fast-model"),
+    confirm_mode_opt: Optional[str] = typer.Option(None, "--confirm-mode"),
+    debug: bool = typer.Option(False, "--debug"),
+    debug_level: Optional[int] = typer.Option(None, "--debug-level"),
+    plain: bool = typer.Option(False, "--plain"),
+) -> None:
+    if api_key:
+        os.environ["OPENAI_API_KEY"] = api_key
+        os.environ.setdefault("API_KEY", api_key)
+    if base_url:
+        os.environ["OPENAI_BASE_URL"] = base_url
+        os.environ.setdefault("BASE_URL", base_url)
+    if model:
+        os.environ["ADORABLE_MODEL_ID"] = model
+    if fast_model:
+        os.environ["ADORABLE_FAST_MODEL_ID"] = fast_model
+    if confirm_mode_opt and confirm_mode_opt.lower() in {"normal", "auto"}:
+        os.environ["ADORABLE_CONFIRM_MODE"] = confirm_mode_opt.lower()
+    if debug:
+        os.environ["AGNO_DEBUG"] = "1"
+    if debug_level is not None:
+        os.environ["AGNO_DEBUG_LEVEL"] = str(debug_level)
+    _configure_console(plain)
+    if ctx.invoked_subcommand is None:
+        cfg = ensure_config_interactive()
+        cm = cfg.get("CONFIRM_MODE", "").strip()
+        if cm:
+            os.environ.setdefault("ADORABLE_CONFIRM_MODE", cm)
+        configure_logging()
+        agent = build_agent()
+        code = run_interactive(agent)
+        raise typer.Exit(code)
 
-    # Help handling
-    if any(arg in ("-h", "--help") for arg in sys.argv[1:]):
-        print_help()
-        return 0
 
-    # Subcommand handling
-    args = [a for a in sys.argv[1:] if not a.startswith("-")]
-    if len(args) >= 1 and args[0].lower() == "version":
-        return print_version()
-    if len(args) >= 1 and args[0].lower() == "config":
-        return run_config()
-    if len(args) >= 1 and args[0].lower() == "mode":
-        # Set or view confirmation mode
-        CONFIG_PATH.mkdir(parents=True, exist_ok=True)
-        existing = parse_kv_file(CONFIG_FILE)
-        current_mode = (
-            existing.get("CONFIRM_MODE", os.environ.get("ADORABLE_CONFIRM_MODE", "auto")) or "auto"
-        )
-        if len(args) >= 2 and args[1].lower() in {"normal", "auto"}:
-            new_mode = args[1].lower()
-            existing["CONFIRM_MODE"] = new_mode
-            write_kv_file(CONFIG_FILE, existing)
-            os.environ["ADORABLE_CONFIRM_MODE"] = new_mode
-            console.print(f"✅ Confirm mode set to: {new_mode}")
-            return 0
-        else:
-            console.print(f"Current confirm mode: {current_mode}")
-            console.print(Text("Use: adorable mode [normal|auto]"))
-            return 0
+@app.command()
+def version() -> None:
+    code = print_version()
+    raise typer.Exit(code)
 
-    # Ensure config and load env
+
+@app.command()
+def config() -> None:
+    code = run_config()
+    raise typer.Exit(code)
+
+
+@app.command()
+def mode(set: Optional[str] = typer.Option(None, "--set", "-s")) -> None:
+    CONFIG_PATH.mkdir(parents=True, exist_ok=True)
+    existing = parse_kv_file(CONFIG_FILE)
+    current_mode = (
+        existing.get("CONFIRM_MODE", os.environ.get("ADORABLE_CONFIRM_MODE", "auto")) or "auto"
+    )
+    if set and set.lower() in {"normal", "auto"}:
+        new_mode = set.lower()
+        existing["CONFIRM_MODE"] = new_mode
+        write_kv_file(CONFIG_FILE, existing)
+        os.environ["ADORABLE_CONFIRM_MODE"] = new_mode
+        console.print(f"✅ Confirm mode set to: {new_mode}")
+        raise typer.Exit(0)
+    console.print(f"Current confirm mode: {current_mode}")
+    console.print(Text("Use: adorable mode --set [normal|auto]"))
+    raise typer.Exit(0)
+
+
+@app.command()
+def chat() -> None:
     cfg = ensure_config_interactive()
-    # If confirm mode not set in env, default to config or auto
     cm = cfg.get("CONFIRM_MODE", "").strip()
     if cm:
         os.environ.setdefault("ADORABLE_CONFIRM_MODE", cm)
-
-    # Reduce Agno INFO logs (e.g., initial DB table creation) on first run
     configure_logging()
-
-    # Todo-centric approach: manage project tasks via local todo.md
-
-    # Build agent
     agent = build_agent()
+    code = run_interactive(agent)
+    raise typer.Exit(code)
 
-    # Always start interactive chat mode
-    return run_interactive(agent)
+
+def main() -> int:
+    app()
+    return 0
 
 
 if __name__ == "__main__":
