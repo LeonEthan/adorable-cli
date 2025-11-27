@@ -94,6 +94,32 @@ adorable --help
 ador --help
 ```
 
+### CLI Commands
+
+- `adorable` / `ador`: start interactive chat
+- `adorable config`: configure `API_KEY`, `BASE_URL`, `MODEL_ID`, `TAVILY_API_KEY`, `FAST_MODEL_ID`
+- `adorable mode --set [normal|auto]`: set confirmation mode
+- `adorable version`: print CLI version
+
+Tip: In interactive chat, type `help-input` to view enhanced input shortcuts.
+
+### Global Options
+
+- `--model <ID>`: primary model ID (e.g., `gpt-5-mini`)
+- `--fast-model <ID>`: fast model for summaries
+- `--base-url <URL>`: OpenAI-compatible base URL
+- `--api-key <KEY>`: API key
+- `--confirm-mode <normal|auto>`: confirmation behavior
+- `--debug`: enable debug
+- `--debug-level <N>`: set debug level
+- `--plain`: disable color output
+
+Example:
+
+```
+adorable --api-key sk-xxxx --base-url https://api.example.com/v1 --model gpt-5-mini chat
+```
+
 Exit keywords: `exit` / `quit` / `q` / `bye`
 
 <div align="center">

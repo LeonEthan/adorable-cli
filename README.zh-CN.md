@@ -64,7 +64,7 @@
 <div align="center">
   <a id="usage"></a>
   
-  ## 🚀 用法速览
+## 🚀 用法速览
 </div>
 
 ```
@@ -80,6 +80,32 @@ adorable config
 adorable --help
 # 别名帮助
 ador --help
+```
+
+### 命令
+
+- `adorable` / `ador`：进入交互聊天
+- `adorable config`：配置 `API_KEY`、`BASE_URL`、`MODEL_ID`、`TAVILY_API_KEY`、`FAST_MODEL_ID`
+- `adorable mode --set [normal|auto]`：设置确认模式
+- `adorable version`：显示 CLI 版本
+
+提示：在交互模式内输入 `help-input` 可查看增强输入的快捷键。
+
+### 全局选项
+
+- `--model <ID>`：主回复模型（例如 `gpt-5-mini`）
+- `--fast-model <ID>`：用于会话摘要的快速模型
+- `--base-url <URL>`：OpenAI 兼容的 Base URL
+- `--api-key <KEY>`：接口密钥
+- `--confirm-mode <normal|auto>`：确认模式
+- `--debug`：启用调试
+- `--debug-level <N>`：设置调试等级
+- `--plain`：禁用彩色输出
+
+示例：
+
+```
+adorable --api-key sk-xxxx --base-url https://api.example.com/v1 --model gpt-5-mini chat
 ```
 
 退出指令：`exit` / `quit` / `q` / `bye`
