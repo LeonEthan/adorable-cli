@@ -10,6 +10,8 @@ from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.key_binding import KeyBindings
 from rich.console import Console
+from rich.panel import Panel
+from rich.text import Text
 
 
 class EnhancedInputSession:
@@ -106,7 +108,7 @@ class EnhancedInputSession:
             user_input = self.session.prompt(prompt_text)
             return user_input.strip()
         except KeyboardInterrupt:
-            self.console.print("[yellow]👋 Use Ctrl+D or type 'exit' to quit[/yellow]")
+            self.console.print("[warning]👋 Use Ctrl+D or type 'exit' to quit[/warning]")
             return ""
         except EOFError:
             return "exit"
@@ -118,25 +120,32 @@ class EnhancedInputSession:
     def show_quick_help(self):
         """Show quick help"""
         help_text = """
-[bold cyan]🚀 Adorable CLI Enhanced Input Features[/bold cyan]
+[header]🚀 Adorable CLI Enhanced Input Features[/header]
 
-[yellow]Input Modes:[/yellow]
-• [cyan]Enter[/cyan] - Submit input (default behavior)
-• [cyan]Ctrl+J[/cyan] - New line
-• [cyan]F1[/cyan] - Manual multiline input mode
-• [cyan]F3[/cyan] - Complex multiline editing mode
+[warning]Input Modes:[/warning]
+• [info]Enter[/info] - Submit input (default behavior)
+• [info]Ctrl+J[/info] - New line
+• [info]F1[/info] - Manual multiline input mode
+• [info]F3[/info] - Complex multiline editing mode
 
-[yellow]Shortcuts:[/yellow]
-• [cyan]Ctrl+Q[/cyan] - Quick exit
-• [cyan]Ctrl+R[/cyan] - Search command history
-• [cyan]↑/↓[/cyan] - Browse command history
+[warning]Shortcuts:[/warning]
+• [info]Ctrl+Q[/info] - Quick exit
+• [info]Ctrl+R[/info] - Search command history
+• [info]↑/↓[/info] - Browse command history
 
-[yellow]History Features:[/yellow]
+[warning]History Features:[/warning]
 • Command history recording and auto-save
 • Automatic command history suggestions and completion
 • Support for history search functionality
         """
-        self.console.print(help_text)
+        self.console.print(
+            Panel(
+                help_text,
+                title=Text("Enhanced Input", style="panel_title"),
+                border_style="panel_border",
+                padding=(0, 1),
+            )
+        )
 
 
 def create_enhanced_session(console: Console) -> EnhancedInputSession:
