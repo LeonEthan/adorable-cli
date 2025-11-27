@@ -20,7 +20,7 @@
 
 <p align="center">
   <a href="README.md"><img src="https://img.shields.io/badge/EN-English-blue" alt="English"></a>
-  <a href="README.zh-CN.md"><img src="https://img.shields.io/badge/ZH--CN-Chinese-red" alt="Chinese"></a>
+  <a href="README.zh-CN.md"><img src="https://img.shields.io/badge/🇨🇳_中文-red" alt="中文"></a>
 </p>
 
 </div>
