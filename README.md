@@ -94,6 +94,32 @@ adorable --help
 ador --help
 ```
 
+### CLI Commands
+
+- `adorable` / `ador`: start interactive chat
+- `adorable config`: configure `API_KEY`, `BASE_URL`, `MODEL_ID`, `TAVILY_API_KEY`, `FAST_MODEL_ID`
+- `adorable mode --set [normal|auto]`: set confirmation mode
+- `adorable version`: print CLI version
+
+Tip: In interactive chat, type `help-input` to view enhanced input shortcuts.
+
+### Global Options
+
+- `--model <ID>`: primary model ID (e.g., `gpt-5-mini`)
+- `--fast-model <ID>`: fast model for summaries
+- `--base-url <URL>`: OpenAI-compatible base URL
+- `--api-key <KEY>`: API key
+- `--confirm-mode <normal|auto>`: confirmation behavior
+- `--debug`: enable debug
+- `--debug-level <N>`: set debug level
+- `--plain`: disable color output
+
+Example:
+
+```
+adorable --api-key sk-xxxx --base-url https://api.example.com/v1 --model gpt-5-mini chat
+```
+
 Exit keywords: `exit` / `quit` / `q` / `bye`
 
 <div align="center">
@@ -132,19 +158,19 @@ These settings help the agent trim history or lightly compress very long inputs 
 
 #### Session Summary Integration
 
-Agno 内置会话摘要可在历史较长时生成精炼摘要，并可选择加入上下文以替代大段历史，从而降低 token 压力并保持语义连续性。
+Adorable includes built-in session summaries that can condense long histories. You can optionally insert the summary into the context to replace large portions of history, reducing token pressure while preserving semantic continuity.
 
-- 在 Agent 配置中启用并加入摘要：
+- Enable and include summaries in the agent configuration:
   - `enable_session_summaries=True`
   - `add_session_summary_to_context=True`
-- 当以上选项开启时，Adorable 的 `context_guard` 会在预算预览中包含当前会话摘要文本，以更准确估算上下文体积；随后仍按既定策略优先削减历史、必要时轻量压缩输入。
-- 建议与 `ADORABLE_CTX_HISTORY_STRATEGY=exact_when_possible` 配合使用，以获得更精确的历史体积估算。
+- When enabled, `context_guard` includes the current session summary text in the budget preview for more accurate context estimates; it still prioritizes trimming history first and lightly compresses input only when necessary.
+- Recommended to pair with `ADORABLE_CTX_HISTORY_STRATEGY=exact_when_possible` for more precise recent-history estimation.
 
-注意：若摘要不可用或获取失败，`context_guard` 将自动回退到占位估算，保证稳健性。
+Note: If a summary is unavailable or fails to generate, `context_guard` gracefully falls back to placeholder estimates.
 
-自定义会话摘要（Customize Session Summaries）
-- 使用 `FAST_MODEL_ID` 为摘要选择更快的模型（OpenAI 兼容，`OpenAILike`）；未设置时默认与主模型一致。
-- 可在 `adorable config` 中设置 `FAST_MODEL_ID`，或通过环境变量注入；摘要模型只用于 SessionSummaryManager，不影响主回复模型。
+Customize session summaries
+- Use `FAST_MODEL_ID` to choose a faster model for summaries (OpenAI-compatible). If not set, it defaults to the primary model.
+- Set `FAST_MODEL_ID` via `adorable config` or environment variables; the summary model is used only by `SessionSummaryManager` and does not affect the main reply model.
 
 <div align="center">
 
