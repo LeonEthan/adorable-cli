@@ -1,4 +1,5 @@
 from typing import Any, Dict
+from pathlib import Path
 
 
 def summarize_args(args: Dict[str, Any]) -> str:
@@ -25,3 +26,25 @@ def summarize_args(args: Dict[str, Any]) -> str:
     if len(summary) > 100:
         summary = summary[:97] + "..."
     return summary
+
+
+def detect_language_from_extension(file_path: str) -> str:
+    try:
+        ext = Path(file_path).suffix.lower()
+    except Exception:
+        ext = ""
+    mapping = {
+        ".py": "python",
+        ".sh": "bash",
+        ".bash": "bash",
+        ".js": "javascript",
+        ".ts": "typescript",
+        ".json": "json",
+        ".md": "markdown",
+        ".yaml": "yaml",
+        ".yml": "yaml",
+        ".toml": "toml",
+        ".html": "html",
+        ".css": "css",
+    }
+    return mapping.get(ext, "")

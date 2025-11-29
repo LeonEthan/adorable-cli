@@ -44,7 +44,7 @@ class EnhancedInputSession:
         )
 
     def _create_key_bindings(self) -> KeyBindings:
-        """Create custom key bindings"""
+        """Create custom key bindings - minimal and clear"""
         kb = KeyBindings()
 
         @kb.add("c-q")
@@ -52,52 +52,11 @@ class EnhancedInputSession:
             """Quick exit"""
             event.app.exit(exception=KeyboardInterrupt)
 
-        @kb.add("c-j")  # Ctrl+J: New line
+        @kb.add("c-j")
         def _(event):
-            """Ctrl+J: New line"""
+            """Insert newline for multiline input"""
             buffer = event.app.current_buffer
             buffer.insert_text("\n")
-
-        @kb.add("f1")  # F1 for manual multiline input
-        def _(event):
-            """F1: Manual multiline input mode"""
-            # Create temporary multiline input session
-            buffer = event.app.current_buffer
-            current_text = buffer.text
-
-            # Use prompt_toolkit's prompt function for multiline input
-            from prompt_toolkit import prompt
-
-            multiline_input = prompt(
-                "Multiline input (Ctrl+D to finish): ",
-                multiline=True,
-                default=current_text,
-                key_bindings=self.key_bindings,
-                style=self.style,
-            )
-
-            # Set multiline input content back to original buffer
-            buffer.text = multiline_input
-            buffer.cursor_position = len(multiline_input)
-
-        @kb.add("f3")
-        def _(event):
-            """F3: Switch to multiline mode for complex input"""
-            buffer = event.app.current_buffer
-
-            # Temporarily switch to multiline mode
-            from prompt_toolkit import prompt
-
-            multiline_input = prompt(
-                "Multiline editing mode (Esc+Enter to exit): ",
-                multiline=True,
-                default=buffer.text,
-                key_bindings=self.key_bindings,
-                style=self.style,
-            )
-
-            buffer.text = multiline_input
-            buffer.cursor_position = len(multiline_input)
 
         return kb
 
@@ -108,7 +67,7 @@ class EnhancedInputSession:
             user_input = self.session.prompt(prompt_text)
             return user_input.strip()
         except KeyboardInterrupt:
-            self.console.print("[warning]👋 Use Ctrl+D or type 'exit' to quit[/warning]")
+            self.console.print("[info]Use Ctrl+D or type 'exit' to quit[/info]")
             return ""
         except EOFError:
             return "exit"
@@ -118,30 +77,26 @@ class EnhancedInputSession:
         return self.session.prompt(prompt_text, multiline=True).strip()
 
     def show_quick_help(self):
-        """Show quick help"""
+        """Show minimal, discoverable help for input shortcuts"""
         help_text = """
-[header]🚀 Adorable CLI Enhanced Input Features[/header]
+[header]Input Shortcuts[/header]
 
-[warning]Input Modes:[/warning]
-• [info]Enter[/info] - Submit input (default behavior)
-• [info]Ctrl+J[/info] - New line
-• [info]F1[/info] - Manual multiline input mode
-• [info]F3[/info] - Complex multiline editing mode
+[tip]Basic:[/tip]
+• [info]Enter[/info] - Submit your message
+• [info]Ctrl+J[/info] - Insert newline (multi-line input)
+• [info]Ctrl+D[/info] or 'exit' - Quit
 
-[warning]Shortcuts:[/warning]
-• [info]Ctrl+Q[/info] - Quick exit
+[tip]History:[/tip]
+• [info]↑/↓[/info] - Browse previous messages
 • [info]Ctrl+R[/info] - Search command history
-• [info]↑/↓[/info] - Browse command history
 
-[warning]History Features:[/warning]
-• Command history recording and auto-save
-• Automatic command history suggestions and completion
-• Support for history search functionality
+[tip]More Commands:[/tip]
+• Type [info]/help[/info] for all available commands
         """
         self.console.print(
             Panel(
                 help_text,
-                title=Text("Enhanced Input", style="panel_title"),
+                title=Text("Input Help", style="panel_title"),
                 border_style="panel_border",
                 padding=(0, 1),
             )
