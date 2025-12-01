@@ -4,25 +4,21 @@ from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as pkg_version
 from pathlib import Path
 from time import perf_counter
-from typing import Any, Optional
+from typing import Any
 
 from rich.align import Align
 from rich.columns import Columns
 from rich.console import Console, Group
-from rich.live import Live
-from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.rule import Rule
 from rich.syntax import Syntax
 from rich.text import Text
 
-from adorable_cli.agent.builder import apply_confirm_mode_to_agent
 from adorable_cli.console import console
 from adorable_cli.ui.enhanced_input import create_enhanced_session
 from adorable_cli.ui.stream_renderer import StreamRenderer
-from adorable_cli.ui.utils import (detect_language_from_extension,
-                                   summarize_args)
+from adorable_cli.ui.utils import detect_language_from_extension, summarize_args
 
 
 def print_version() -> int:
@@ -45,68 +41,53 @@ def _get_shell_text(targs: dict) -> str:
     return str(val or "")
 
 
-def handle_special_command(
-    user_input: str, enhanced_session, console: Console, agent, confirm_mode: str
-) -> bool:
+def handle_special_command(user_input: str, enhanced_session, console: Console, agent) -> bool:
     """Handle special commands with / prefix. Returns True if command was handled.
-    
+
     Supports unified / prefix commands:
     - /help - Show available commands
     - /clear - Clear screen
     - /stats - Session statistics
     - /auto, /normal - Change confirmation mode
     - /exit - Quit session
-    
+
     Maintains backward compatibility with legacy commands.
     """
     cmd = user_input.strip().lower()
-    
+
     # Exit commands (support both formats)
     exit_on = ["exit", "exit()", "quit", "q", "bye", "/exit", "/quit", "/q"]
     if cmd in exit_on:
         console.print("Bye!", style="info")
         return True
-    
+
     # /help - Show all available commands
     if cmd in ["/help", "help", "/?"]:  # Backward compat: help
         _show_commands_help(console)
         return True
-    
+
     # /clear - Clear screen
     if cmd in ["/clear", "/cls", "clear", "cls"]:  # Backward compat: clear, cls
         console.clear()
         console.print("[muted]Screen cleared. Type /help for commands.[/muted]")
         return True
-    
+
     # /stats - Session statistics
     if cmd in ["/stats", "session-stats"]:  # Backward compat: session-stats
-        _show_session_stats(console, confirm_mode)
+        _show_session_stats(console)
         return True
-    
-    # /mode - Show or set confirmation mode (with shortcuts)
-    if cmd in ["/auto", "/normal"]:
-        new_mode = cmd[1:]  # Strip /
-        os.environ["ADORABLE_CONFIRM_MODE"] = new_mode
-        apply_confirm_mode_to_agent(agent, new_mode)
-        console.print(f"Switched to: {new_mode} mode", style="success")
-        console.print(
-            f"[muted]Tool confirmations will now use '{new_mode}' mode[/muted]"
-        )
-        return True
-    
+
     # Legacy: help-input (show input help)
     if cmd == "help-input":
         enhanced_session.show_quick_help()
         return True
-    
+
     # Legacy: enhanced-mode (deprecated, redirect to /help)
     if cmd == "enhanced-mode":
-        console.print(
-            "[warning]'enhanced-mode' is deprecated. Use '/help' instead.[/warning]"
-        )
+        console.print("[warning]'enhanced-mode' is deprecated. Use '/help' instead.[/warning]")
         _show_commands_help(console)
         return True
-    
+
     return False
 
 
@@ -124,16 +105,9 @@ def _show_commands_help(console: Console) -> None:
 [tip]Input Help:[/tip]
 • Type 'help-input' - Input shortcuts and history
 
-[tip]Confirmation Mode:[/tip]
-• [info]/auto[/info] - Auto-confirm safe operations
-• [info]/normal[/info] - Ask for all confirmations
-• Current mode: [warning]{mode}[/warning]
-
 [muted]Tip: Most commands work with or without / prefix[/muted]
     """
-    current_mode = os.environ.get("ADORABLE_CONFIRM_MODE", "auto").strip() or "auto"
-    help_text = help_text.replace("{mode}", current_mode)
-    
+
     console.print(
         Panel(
             help_text,
@@ -144,15 +118,14 @@ def _show_commands_help(console: Console) -> None:
     )
 
 
-def _show_session_stats(console: Console, confirm_mode: str) -> None:
+def _show_session_stats(console: Console) -> None:
     """Show current session statistics."""
-    stats_text = f"""[tip]Session Status[/tip]
+    stats_text = """[tip]Session Status[/tip]
 
 • Enhanced Input: [success]Enabled[/success]
 • History: Auto-complete & search
-• Multiline: Ctrl+J
-• Confirm Mode: [info]{confirm_mode}[/info]"""
-    
+• Multiline: Ctrl+J"""
+
     console.print(
         Panel(
             stats_text,
@@ -163,41 +136,30 @@ def _show_session_stats(console: Console, confirm_mode: str) -> None:
     )
 
 
-def handle_tool_confirmation(
-    tool, confirm_mode: str, console: Console
-) -> bool:
+def handle_tool_confirmation(tool, console: Console) -> bool:
     """Show tool preview and get user confirmation. Returns True if confirmed."""
-    tname = (
-        getattr(tool, "tool_name", None)
-        or getattr(tool, "name", None)
-        or "tool"
-    )
+    tname = getattr(tool, "tool_name", None) or getattr(tool, "name", None) or "tool"
     targs = getattr(tool, "tool_args", None) or {}
-    
+
     # Hard bans: block dangerous system-level commands regardless of mode
     if tname == "run_shell_command":
         cmd_text = _get_shell_text(targs)
         lower = cmd_text.lower().strip()
         if "rm -rf /" in lower:
-            console.print(
-                Text.from_markup("[error]Blocked dangerous command (hard-ban)[/error]")
-            )
+            console.print(Text.from_markup("[error]Blocked dangerous command (hard-ban)[/error]"))
             return False
         if lower.startswith("sudo ") or " sudo " in lower:
-            console.print(
-                Text.from_markup("[error]Blocked dangerous command (hard-ban)[/error]")
-            )
+            console.print(Text.from_markup("[error]Blocked dangerous command (hard-ban)[/error]"))
             return False
-    
-    # Auto mode: auto-confirm after hard-ban checks
-    if confirm_mode == "auto":
-        return True
-    
+
+    # Auto mode logic is handled in single_agent.py by setting requires_confirmation=False
+    # If we are here, it means requires_confirmation=True, so we must ask.
+
     # Normal mode: show detailed preview and ask for confirmation
     preview_group = []
     header_text = Text(f"Tool: {tname}", style="tool_name")
     preview_group.append(header_text)
-    
+
     try:
         if tname == "execute_python_code":
             code = str(targs.get("code", ""))
@@ -208,9 +170,7 @@ def handle_tool_confirmation(
         elif tname == "run_shell_command":
             cmd = _get_shell_text(targs)
             cmd_display = cmd if len(cmd) <= 1000 else (cmd[:970] + "...")
-            preview_group.append(
-                Syntax(cmd_display, "bash", theme="monokai", line_numbers=False)
-            )
+            preview_group.append(Syntax(cmd_display, "bash", theme="monokai", line_numbers=False))
         elif tname == "save_file":
             file_path = str(
                 targs.get("file_path")
@@ -253,7 +213,7 @@ def handle_tool_confirmation(
             preview_group.append(Text(f"Args: {summary}", style="info"))
     except Exception:
         pass
-    
+
     console.print(
         Panel(
             Group(*preview_group),
@@ -262,7 +222,7 @@ def handle_tool_confirmation(
             padding=(0, 1),
         )
     )
-    
+
     resp = Prompt.ask(
         f"Confirm running tool [tool_name]{tname}[/tool_name]?",
         choices=["y", "n"],
@@ -272,61 +232,61 @@ def handle_tool_confirmation(
 
 
 def process_agent_stream(
-    agent, user_input: str, renderer: StreamRenderer, confirm_mode: str, console: Console
+    agent, user_input: str, renderer: StreamRenderer, console: Console
 ) -> tuple[str, Any, datetime, float]:
     """Process agent stream with tool confirmations. Returns (final_text, metrics, start_time, start_perf)."""
     final_metrics = None
     start_at = datetime.now()
     start_perf = perf_counter()
-    
+
     stream = agent.run(user_input, stream=True, stream_intermediate_steps=True)
-    
+
     # Start streaming with renderer
     renderer.start_stream()
-    
+
     try:
         while True:
             paused_event = None
-            
+
             for event in stream:
                 etype = getattr(event, "event", "")
-                
+
                 # Handle streaming content
                 if etype in ("RunContent", "TeamRunContent"):
                     content = getattr(event, "content", "")
                     if content:
                         renderer.update_content(content)
-                
+
                 if etype in ("RunCompleted", "TeamRunCompleted"):
                     content = getattr(event, "content", "")
                     if content and not renderer.get_final_text():
                         renderer.update_content(content)
-                    
+
                     metrics = getattr(event, "metrics", None)
                     if metrics:
                         final_metrics = metrics
-                
+
                 if etype in ("ToolCallStarted", "RunToolCallStarted"):
                     renderer.render_tool_call(event)
-                
+
                 if getattr(event, "is_paused", False):
                     paused_event = event
                     break
-            
+
             # Handle paused event for tool confirmations
             if paused_event is not None:
                 renderer.pause_stream()
-                
+
                 tools_list = (
                     getattr(paused_event, "tools_requiring_confirmation", None)
                     or getattr(paused_event, "tools", None)
                     or []
                 )
-                
+
                 for tool in tools_list:
-                    confirmed = handle_tool_confirmation(tool, confirm_mode, console)
+                    confirmed = handle_tool_confirmation(tool, console)
                     setattr(tool, "confirmed", confirmed)
-                
+
                 stream = agent.continue_run(
                     run_id=getattr(paused_event, "run_id", None),
                     updated_tools=getattr(paused_event, "tools", None),
@@ -339,7 +299,7 @@ def process_agent_stream(
     finally:
         # Always finish the stream properly
         renderer.finish_stream()
-    
+
     final_text = renderer.get_final_text()
     return final_text, final_metrics, start_at, start_perf
 
@@ -352,9 +312,8 @@ def run_interactive(agent) -> int:
         ver = "version unknown"
     model_id = os.environ.get("ADORABLE_MODEL_ID", "gpt-5-mini")
     cwd = str(Path.cwd())
-    confirm_mode = os.environ.get("ADORABLE_CONFIRM_MODE", "auto").strip() or "auto"
     show_cat = os.environ.get("ADORABLE_SHOW_CAT", "true").lower() in ("true", "1", "yes")
-    
+
     # Claude Code-style welcome UI: two-column layout + optional pixel cat
     if show_cat:
         pixel_sprite = r"""
@@ -389,7 +348,6 @@ def run_interactive(agent) -> int:
         Text("Configuration", style="tip"),
         Rule(style="rule_light"),
         Text(f"Model: {model_id}", style="muted"),
-        Text(f"Mode: {confirm_mode}", style="muted"),
         Text(f"Path: {cwd}", style="muted"),
     )
 
@@ -407,9 +365,7 @@ def run_interactive(agent) -> int:
 
     # Enhanced interaction loop with simplified control flow
     console.print("[success]Ready to assist[/success]")
-    console.print(
-        "[muted]Enter=submit • Ctrl+J=newline • ↑/↓=history • /help for commands[/muted]"
-    )
+    console.print("[muted]Enter=submit • Ctrl+J=newline • ↑/↓=history • /help for commands[/muted]")
 
     # Initialize renderer once for the session
     renderer = StreamRenderer(console)
@@ -429,9 +385,8 @@ def run_interactive(agent) -> int:
             continue
 
         # Handle special commands (returns True if command was handled)
-        if handle_special_command(user_input, enhanced_session, console, agent, confirm_mode):
+        if handle_special_command(user_input, enhanced_session, console, agent):
             # Update local confirm_mode if it was changed
-            confirm_mode = os.environ.get("ADORABLE_CONFIRM_MODE", "auto").strip() or "auto"
             if user_input.lower() in ["exit", "exit()", "quit", "q", "bye"]:
                 break
             continue
@@ -439,7 +394,7 @@ def run_interactive(agent) -> int:
         try:
             # Process agent stream with tool confirmations
             final_text, final_metrics, start_at, start_perf = process_agent_stream(
-                agent, user_input, renderer, confirm_mode, console
+                agent, user_input, renderer, console
             )
 
             # Display footer with metrics
