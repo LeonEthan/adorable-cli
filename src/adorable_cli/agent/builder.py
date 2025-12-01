@@ -6,7 +6,7 @@ from agno.models.openai import OpenAILike
 from agno.session.summary import SessionSummaryManager
 from agno.utils.log import configure_agno_logging
 
-from adorable_cli.agent.team import create_orchestrator_team
+from adorable_cli.agent.single_agent import create_adorable_agent
 from adorable_cli.config import MEM_DB_PATH
 
 
@@ -26,53 +26,9 @@ def configure_logging() -> None:
         pass
 
 
-def apply_confirm_mode_to_agent(agent, mode: str) -> None:
-    """Dynamically adjust requires_confirmation flags on the existing agent's tools.
-
-    For a Team, we need to apply this to the relevant subagents.
-    """
-    try:
-        target_true = set()
-        python_names = {"execute_python_code", "run_python_code"}
-        shell_names = {"run_shell_command"}
-        file_names = {"save_file"}
-
-        if mode == "normal":
-            target_true = set().union(python_names, shell_names, file_names)
-        elif mode == "auto":
-            target_true = set().union(python_names, shell_names)
-        # Deprecated 'off' mode is treated as 'auto' elsewhere; no special handling here.
-
-        # Iterate through team members to find the ones with tools (Subagents)
-        members = getattr(agent, "members", [])
-        if not members:
-            # Fallback for single agent if not a team
-            members = [agent]
-
-        for member in members:
-            for tk in getattr(member, "tools", []):
-                functions = getattr(tk, "functions", {})
-                # First set all to False
-                for f in functions.values():
-                    try:
-                        setattr(f, "requires_confirmation", False)
-                    except Exception:
-                        pass
-                # Then enable target ones
-                for name, f in functions.items():
-                    if name in target_true:
-                        try:
-                            setattr(f, "requires_confirmation", True)
-                        except Exception:
-                            pass
-    except Exception:
-        # Non-fatal
-        pass
-
-
 def build_agent():
     """
-    Builds the Orchestrator Team instead of a single agent.
+    Builds the Adorable Single Agent.
     """
     # Model id can be customized via env MODEL_ID, else defaults
     model_id = os.environ.get("ADORABLE_MODEL_ID", "gpt-5-mini")
@@ -88,12 +44,6 @@ def build_agent():
 
     # Shared user memory database (not fully utilized by Team class yet, but good to have)
     db = SqliteDb(db_file=str(MEM_DB_PATH))
-
-    # Read confirm mode to adjust tool confirmation behavior (only 'normal' and 'auto')
-    confirm_mode = os.environ.get("ADORABLE_CONFIRM_MODE", "auto").strip() or "auto"
-    if confirm_mode == "off":
-        # Backward compatibility: treat deprecated 'off' as 'auto'
-        confirm_mode = "auto"
 
     # Debug configuration from environment
     agno_debug_env = os.environ.get("AGNO_DEBUG", "").strip().lower()
@@ -137,12 +87,11 @@ def build_agent():
         ),
     )
 
-    # Create the Team
-    team = create_orchestrator_team(
+    # Create the Single Agent
+    agent = create_adorable_agent(
         model_id=model_id,
         api_key=api_key,
         base_url=base_url,
-        confirm_mode=confirm_mode,
         debug_mode=debug_mode,
         debug_level=debug_level,
         db=db,
@@ -150,4 +99,4 @@ def build_agent():
         compression_manager=compression_manager,
     )
 
-    return team
+    return agent

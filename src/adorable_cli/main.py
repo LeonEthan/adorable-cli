@@ -3,16 +3,13 @@ from typing import Optional
 
 import typer
 from dotenv import load_dotenv
-from rich.text import Text
 
 # Load .env file if present
 load_dotenv()
 
 from adorable_cli.agent.builder import build_agent, configure_logging
-from adorable_cli.config import (CONFIG_FILE, CONFIG_PATH,
-                                 ensure_config_interactive, parse_kv_file,
-                                 run_config, write_kv_file)
-from adorable_cli.console import configure_console, console
+from adorable_cli.config import ensure_config_interactive, run_config
+from adorable_cli.console import configure_console
 from adorable_cli.ui.interactive import print_version, run_interactive
 
 app = typer.Typer(add_completion=False)
@@ -25,7 +22,6 @@ def app_entry(
     base_url: Optional[str] = typer.Option(None, "--base-url"),
     api_key: Optional[str] = typer.Option(None, "--api-key"),
     fast_model: Optional[str] = typer.Option(None, "--fast-model"),
-    confirm_mode_opt: Optional[str] = typer.Option(None, "--confirm-mode"),
     debug: bool = typer.Option(False, "--debug"),
     debug_level: Optional[int] = typer.Option(None, "--debug-level"),
     plain: bool = typer.Option(False, "--plain"),
@@ -40,8 +36,6 @@ def app_entry(
         os.environ["ADORABLE_MODEL_ID"] = model
     if fast_model:
         os.environ["ADORABLE_FAST_MODEL_ID"] = fast_model
-    if confirm_mode_opt and confirm_mode_opt.lower() in {"normal", "auto"}:
-        os.environ["ADORABLE_CONFIRM_MODE"] = confirm_mode_opt.lower()
     if debug:
         os.environ["AGNO_DEBUG"] = "1"
     if debug_level is not None:
@@ -50,10 +44,7 @@ def app_entry(
     configure_console(plain)
 
     if ctx.invoked_subcommand is None:
-        cfg = ensure_config_interactive()
-        cm = cfg.get("CONFIRM_MODE", "").strip()
-        if cm:
-            os.environ.setdefault("ADORABLE_CONFIRM_MODE", cm)
+        ensure_config_interactive()
         configure_logging()
         agent = build_agent()
         code = run_interactive(agent)
@@ -73,30 +64,8 @@ def config() -> None:
 
 
 @app.command()
-def mode(set: Optional[str] = typer.Option(None, "--set", "-s")) -> None:
-    CONFIG_PATH.mkdir(parents=True, exist_ok=True)
-    existing = parse_kv_file(CONFIG_FILE)
-    current_mode = (
-        existing.get("CONFIRM_MODE", os.environ.get("ADORABLE_CONFIRM_MODE", "auto")) or "auto"
-    )
-    if set and set.lower() in {"normal", "auto"}:
-        new_mode = set.lower()
-        existing["CONFIRM_MODE"] = new_mode
-        write_kv_file(CONFIG_FILE, existing)
-        os.environ["ADORABLE_CONFIRM_MODE"] = new_mode
-        console.print(f"Confirm mode set to: {new_mode}", style="success")
-        raise typer.Exit(0)
-    console.print(f"Current confirm mode: {current_mode}")
-    console.print(Text("Use: adorable mode --set [normal|auto]"))
-    raise typer.Exit(0)
-
-
-@app.command()
 def chat() -> None:
-    cfg = ensure_config_interactive()
-    cm = cfg.get("CONFIRM_MODE", "").strip()
-    if cm:
-        os.environ.setdefault("ADORABLE_CONFIRM_MODE", cm)
+    ensure_config_interactive()
     configure_logging()
     agent = build_agent()
     code = run_interactive(agent)
