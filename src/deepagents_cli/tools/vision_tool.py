@@ -6,7 +6,7 @@ from agno.agent import Agent
 from agno.media import Image
 from agno.models.openai import OpenAILike
 from agno.tools import Toolkit
-from adorable_cli.hooks.context_guard import (
+from deepagents_cli.hooks.context_guard import (
     ensure_context_within_window,
     restore_context_settings,
 )
@@ -22,8 +22,8 @@ class ImageUnderstandingTool(Toolkit):
         
         # Read VLM model ID, support independent configuration
         self.vlm_model_id = os.environ.get(
-            "ADORABLE_VLM_MODEL_ID",
-            os.environ.get("ADORABLE_MODEL_ID", "gpt-5-mini"))
+            "DEEPAGENTS_VLM_MODEL_ID",
+            os.environ.get("DEEPAGENTS_MODEL_ID", "gpt-5-mini"))
         
         # Create dedicated VLM Agent
         self.vlm_agent = Agent(
@@ -91,6 +91,6 @@ class ImageUnderstandingTool(Toolkit):
 def create_image_understanding_tool() -> ImageUnderstandingTool:
     """
     Create an image understanding tool that wraps the VLM Agent.
-    Model can be specified via ADORABLE_VLM_MODEL_ID environment variable.
+    Model can be specified via DEEPAGENTS_VLM_MODEL_ID environment variable.
     """
     return ImageUnderstandingTool()
