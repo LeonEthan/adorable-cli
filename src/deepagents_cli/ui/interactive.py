@@ -15,19 +15,19 @@ from rich.rule import Rule
 from rich.syntax import Syntax
 from rich.text import Text
 
-from adorable_cli.console import console
-from adorable_cli.ui.enhanced_input import create_enhanced_session
-from adorable_cli.ui.stream_renderer import StreamRenderer
-from adorable_cli.ui.utils import detect_language_from_extension, summarize_args
+from deepagents_cli.console import console
+from deepagents_cli.ui.enhanced_input import create_enhanced_session
+from deepagents_cli.ui.stream_renderer import StreamRenderer
+from deepagents_cli.ui.utils import detect_language_from_extension, summarize_args
 
 
 def print_version() -> int:
     try:
-        ver = pkg_version("adorable-cli")
-        print(f"adorable-cli {ver}")
+        ver = pkg_version("deepagents-cli")
+        print(f"deepagents-cli {ver}")
     except PackageNotFoundError:
         # Fallback when distribution metadata is unavailable (e.g., dev runs)
-        print("adorable-cli (version unknown)")
+        print("deepagents-cli (version unknown)")
     return 0
 
 
@@ -111,7 +111,7 @@ def _show_commands_help(console: Console) -> None:
     console.print(
         Panel(
             help_text,
-            title=Text("Adorable CLI", style="panel_title"),
+            title=Text("DeepAgents CLI", style="panel_title"),
             border_style="panel_border",
             padding=(0, 1),
         )
@@ -124,7 +124,7 @@ def _show_session_stats(console: Console) -> None:
 
 • Enhanced Input: [success]Enabled[/success]
 • History: Auto-complete & search
-• Multiline: Ctrl+J"""
+• Multiline: Ctrl+J / Alt+Enter"""
 
     console.print(
         Panel(
@@ -152,7 +152,7 @@ def handle_tool_confirmation(tool, console: Console) -> bool:
             console.print(Text.from_markup("[error]Blocked dangerous command (hard-ban)[/error]"))
             return False
 
-    # Auto mode logic is handled in single_agent.py by setting requires_confirmation=False
+    # Auto mode logic is handled in main_agent.py by setting requires_confirmation=False
     # If we are here, it means requires_confirmation=True, so we must ask.
 
     # Normal mode: show detailed preview and ask for confirmation
@@ -307,12 +307,12 @@ def process_agent_stream(
 def run_interactive(agent) -> int:
     # Get configuration
     try:
-        ver = pkg_version("adorable-cli")
+        ver = pkg_version("deepagents-cli")
     except PackageNotFoundError:
         ver = "version unknown"
-    model_id = os.environ.get("ADORABLE_MODEL_ID", "gpt-5-mini")
+    model_id = os.environ.get("DEEPAGENTS_MODEL_ID", "gpt-5-mini")
     cwd = str(Path.cwd())
-    show_cat = os.environ.get("ADORABLE_SHOW_CAT", "true").lower() in ("true", "1", "yes")
+    show_cat = os.environ.get("DEEPAGENTS_SHOW_CAT", "true").lower() in ("true", "1", "yes")
 
     # Claude Code-style welcome UI: two-column layout + optional pixel cat
     if show_cat:
@@ -327,12 +327,12 @@ def run_interactive(agent) -> int:
 [cat_primary]        ██████████████[/cat_primary]
 """
         left_group = Group(
-            Align.center(Text("Welcome to Adorable CLI", style="header")),
+            Align.center(Text("Welcome to DeepAgents CLI", style="header")),
             Align.center(Text.from_markup(pixel_sprite)),
         )
     else:
         left_group = Group(
-            Align.center(Text("Welcome to Adorable CLI", style="header")),
+            Align.center(Text("Welcome to DeepAgents CLI", style="header")),
             Align.center(Text(f"\nVersion {ver}", style="info")),
         )
 
@@ -342,8 +342,8 @@ def run_interactive(agent) -> int:
         Rule(style="rule_light"),
         Text("• Type your question to start", style="muted"),
         Text("• Use /help for all commands", style="muted"),
-        Text("• Ctrl+J for multi-line input", style="muted"),
-        Text("• ↑/↓ to browse history", style="muted"),
+        Text("• Ctrl+J or Alt+Enter for newline", style="muted"),
+        Text("• @ for file completion", style="muted"),
         Text(""),
         Text("Configuration", style="tip"),
         Rule(style="rule_light"),
@@ -354,7 +354,7 @@ def run_interactive(agent) -> int:
     console.print(
         Panel(
             Columns([left_group, right_group], equal=True, expand=True),
-            title=Text("Adorable CLI", style="panel_title"),
+            title=Text("DeepAgents CLI", style="panel_title"),
             border_style="panel_border",
             padding=(0, 1),
         )
@@ -365,7 +365,6 @@ def run_interactive(agent) -> int:
 
     # Enhanced interaction loop with simplified control flow
     console.print("[success]Ready to assist[/success]")
-    console.print("[muted]Enter=submit • Ctrl+J=newline • ↑/↓=history • /help for commands[/muted]")
 
     # Initialize renderer once for the session
     renderer = StreamRenderer(console)
@@ -373,7 +372,7 @@ def run_interactive(agent) -> int:
     while True:
         try:
             # Get user input
-            user_input = enhanced_session.prompt_user("> ")
+            user_input = enhanced_session.prompt_user(">> ")
         except KeyboardInterrupt:
             console.print("Bye!", style="info")
             return 0

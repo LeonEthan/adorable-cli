@@ -6,8 +6,8 @@ from agno.models.openai import OpenAILike
 from agno.session.summary import SessionSummaryManager
 from agno.utils.log import configure_agno_logging
 
-from adorable_cli.agent.main_agent import create_adorable_agent
-from adorable_cli.config import MEM_DB_PATH
+from deepagents_cli.agent.main_agent import create_deepagents_agent
+from deepagents_cli.config import MEM_DB_PATH
 
 
 def configure_logging() -> None:
@@ -28,18 +28,18 @@ def configure_logging() -> None:
 
 def build_agent():
     """
-    Builds the Adorable Single Agent.
+    Builds the DeepAgents Single Agent.
     """
     # Model id can be customized via env MODEL_ID, else defaults
-    model_id = os.environ.get("ADORABLE_MODEL_ID", "gpt-5-mini")
+    model_id = os.environ.get("DEEPAGENTS_MODEL_ID", "gpt-5-mini")
 
     # Read API key and base URL from environment (supports OpenAI-compatible providers)
     api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("API_KEY")
     base_url = os.environ.get("OPENAI_BASE_URL") or os.environ.get("BASE_URL")
 
-    # Summary model id can be customized via FAST_MODEL_ID (or ADORABLE_FAST_MODEL_ID)
+    # Summary model id can be customized via FAST_MODEL_ID (or DEEPAGENTS_FAST_MODEL_ID)
     fast_model_id = (
-        os.environ.get("FAST_MODEL_ID") or os.environ.get("ADORABLE_FAST_MODEL_ID") or model_id
+        os.environ.get("FAST_MODEL_ID") or os.environ.get("DEEPAGENTS_FAST_MODEL_ID") or model_id
     )
 
     # Shared user memory database (not fully utilized by Team class yet, but good to have)
@@ -88,7 +88,7 @@ def build_agent():
     )
 
     # Create the Single Agent
-    agent = create_adorable_agent(
+    agent = create_deepagents_agent(
         model_id=model_id,
         api_key=api_key,
         base_url=base_url,

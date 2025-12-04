@@ -3,8 +3,8 @@ Simplified context guard to keep model context within reasonable limits.
 
 Uses conservative fixed limits and relies on agno's built-in context management.
 For advanced tuning, use environment variables:
-- ADORABLE_CONTEXT_WINDOW: Override context window size
-- ADORABLE_CTX_MARGIN: Safety margin in tokens (default: 2048)
+- DEEPAGENTS_CONTEXT_WINDOW: Override context window size
+- DEEPAGENTS_CTX_MARGIN: Safety margin in tokens (default: 2048)
 """
 
 from __future__ import annotations
@@ -44,7 +44,7 @@ def _estimate_tokens(text: str) -> int:
 def _get_context_window() -> int:
     """Get context window from env or use conservative default."""
     try:
-        val = os.environ.get("ADORABLE_CONTEXT_WINDOW")
+        val = os.environ.get("DEEPAGENTS_CONTEXT_WINDOW")
         if val:
             return int(val)
     except Exception:
@@ -55,7 +55,7 @@ def _get_context_window() -> int:
 def _get_margin() -> int:
     """Get safety margin from env or use conservative default."""
     try:
-        val = os.environ.get("ADORABLE_CTX_MARGIN")
+        val = os.environ.get("DEEPAGENTS_CTX_MARGIN")
         if val:
             return int(val)
     except Exception:

@@ -109,54 +109,54 @@ setup_python_with_pyenv() {
 }
 
 # ======================
-# 5. Install/Upgrade adorable-cli
+# 5. Install/Upgrade deepagents-cli
 # ======================
-install_or_upgrade_adorable_cli() {
+install_or_upgrade_deepagents_cli() {
     # 🔁 Choose the installation source here:
     # Option A: install from PyPI (default)
-    local PACKAGE="adorable-cli"
+    local PACKAGE="deepagents-cli"
 
     # Option B: install from GitHub (uncomment the next line and comment the above)
-    # local PACKAGE="git+https://github.com/yourname/adorable-cli.git"
+    # local PACKAGE="git+https://github.com/LeonEthan/deepagents-cli.git"
 
-    yellow "🔍 Checking if adorable-cli is installed..."
+    yellow "🔍 Checking if deepagents-cli is installed..."
 
-    if pipx list --short 2>/dev/null | grep -q "^adorable-cli\$"; then
-        yellow "🔄 adorable-cli is installed; upgrading..."
-        if ! pipx upgrade adorable-cli; then
+    if pipx list --short 2>/dev/null | grep -q "^deepagents-cli\$"; then
+        yellow "🔄 deepagents-cli is installed; upgrading..."
+        if ! pipx upgrade deepagents-cli; then
             red "⚠️  Upgrade failed; attempting reinstall..."
-            pipx uninstall adorable-cli
+            pipx uninstall deepagents-cli
             pipx install "$PACKAGE"
         fi
     else
-        yellow "📥 Installing adorable-cli..."
+        yellow "📥 Installing deepagents-cli..."
         pipx install "$PACKAGE"
     fi
 }
 
 # ======================
-# 6. Warm up adorable-cli to avoid cold-start slowness
+# 6. Warm up deepagents-cli to avoid cold-start slowness
 # ======================
-warmup_adorable_cli() {
-    yellow "🔥 Warming up adorable-cli (--help)..."
+warmup_deepagents_cli() {
+    yellow "🔥 Warming up deepagents-cli (--help)..."
 
     # Ensure PATH contains pipx-installed binaries
     export PATH="$HOME/.local/bin:$PATH"
 
-    if command -v adorable >/dev/null 2>&1; then
+    if command -v deepagents >/dev/null 2>&1; then
         local start_ts end_ts dur
         start_ts=$(date +%s)
-        if adorable --help >/dev/null 2>&1; then
+        if deepagents --help >/dev/null 2>&1; then
             end_ts=$(date +%s)
             dur=$((end_ts - start_ts))
             green "✅ Warm-up complete in ${dur}s"
         else
-            yellow "⚠️  Warm-up failed via 'adorable'; trying 'pipx run'"
-            pipx run adorable-cli --help >/dev/null 2>&1 || yellow "⚠️  Warm-up via pipx run failed (ignored)"
+            yellow "⚠️  Warm-up failed via 'deepagents'; trying 'pipx run'"
+            pipx run deepagents-cli --help >/dev/null 2>&1 || yellow "⚠️  Warm-up via pipx run failed (ignored)"
         fi
     else
-        yellow "⚠️  'adorable' not found on PATH; trying 'pipx run'"
-        pipx run adorable-cli --help >/dev/null 2>&1 || yellow "⚠️  Warm-up via pipx run failed (ignored)"
+        yellow "⚠️  'deepagents' not found on PATH; trying 'pipx run'"
+        pipx run deepagents-cli --help >/dev/null 2>&1 || yellow "⚠️  Warm-up via pipx run failed (ignored)"
     fi
 }
 
@@ -164,7 +164,7 @@ warmup_adorable_cli() {
 # Main flow
 # ======================
 main() {
-    green "🚀 Starting automatic install/upgrade of adorable-cli..."
+    green "🚀 Starting automatic install/upgrade of deepagents-cli..."
 
     # 1. Ensure Python >= 3.10
     if ! check_python_version; then
@@ -182,20 +182,20 @@ main() {
     python3 -m pipx ensurepath
     export PATH="$HOME/.local/bin:$PATH"
 
-    # 4. Install or upgrade adorable-cli
-    install_or_upgrade_adorable_cli
+    # 4. Install or upgrade deepagents-cli
+    install_or_upgrade_deepagents_cli
 
-    # 5. Warm up adorable-cli to reduce user's first-run latency
-    warmup_adorable_cli
+    # 5. Warm up deepagents-cli to reduce user's first-run latency
+    warmup_deepagents_cli
 
-    green "🎉 adorable-cli installed or upgraded successfully!"
+    green "🎉 deepagents-cli installed or upgraded successfully!"
     yellow "💡 Run the following commands to apply the environment (or reopen your terminal):"
     if [ -f "$HOME/.zshrc" ]; then
         echo "   source ~/.zshrc"
     else
         echo "   source ~/.bashrc"
     fi
-    echo "   Then run: adorable --help"
+    echo "   Then run: deepagents --help"
 }
 
 main "$@"

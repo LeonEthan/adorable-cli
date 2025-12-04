@@ -10,12 +10,12 @@ from agno.tools.reasoning import ReasoningTools
 from agno.tools.shell import ShellTools
 from agno.tools.tavily import TavilyTools
 
-from adorable_cli.hooks.context_guard import ensure_context_within_window, restore_context_settings
-from adorable_cli.prompt import MAIN_AGENT_INSTRUCTIONS
-from adorable_cli.tools.vision_tool import create_image_understanding_tool
+from deepagents_cli.hooks.context_guard import ensure_context_within_window, restore_context_settings
+from deepagents_cli.prompt import MAIN_AGENT_INSTRUCTIONS
+from deepagents_cli.tools.vision_tool import create_image_understanding_tool
 
 
-def create_adorable_agent(
+def create_deepagents_agent(
     model_id: str,
     api_key: Optional[str],
     base_url: Optional[str],
@@ -42,10 +42,10 @@ def create_adorable_agent(
 
     # Create the Agent
     agent = Agent(
-        name="Adorable Agent",
+        name="DeepAgents Agent",
         model=OpenAILike(id=model_id, api_key=api_key, base_url=base_url),
         tools=tools,
-        role="You are an autonomous data science assistant capable of research, coding, and execution.",
+        role="You are a universal autonomous agent capable of planning, research, and complex execution.",
         instructions=MAIN_AGENT_INSTRUCTIONS,
         add_datetime_to_context=True,
         # todo list management using session state

@@ -4,9 +4,9 @@ from pathlib import Path
 from rich.panel import Panel
 from rich.text import Text
 
-from adorable_cli.console import console
+from deepagents_cli.console import console
 
-CONFIG_PATH = Path.home() / ".adorable"
+CONFIG_PATH = Path.home() / ".deepagents"
 CONFIG_FILE = CONFIG_PATH / "config"
 MEM_DB_PATH = CONFIG_PATH / "memory.db"
 
@@ -49,11 +49,11 @@ def load_env_from_config(cfg: dict[str, str]) -> None:
         os.environ.setdefault("TAVILY_API_KEY", tavily_key)
     model_id = cfg.get("MODEL_ID", "")
     if model_id:
-        os.environ.setdefault("ADORABLE_MODEL_ID", model_id)
+        os.environ.setdefault("DEEPAGENTS_MODEL_ID", model_id)
     if vlm_model_id:
-        os.environ.setdefault("ADORABLE_VLM_MODEL_ID", vlm_model_id)
+        os.environ.setdefault("DEEPAGENTS_VLM_MODEL_ID", vlm_model_id)
     if confirm_mode:
-        os.environ.setdefault("ADORABLE_CONFIRM_MODE", confirm_mode)
+        os.environ.setdefault("DEEPAGENTS_CONFIRM_MODE", confirm_mode)
 
 def ensure_config_interactive() -> dict[str, str]:
     # Ensure configuration directory exists and read existing config if present
@@ -83,7 +83,7 @@ def ensure_config_interactive() -> dict[str, str]:
         console.print(
             Panel(
                 Text.from_markup(setup_message),
-                title=Text("Adorable Setup", style="panel_title"),
+                title=Text("DeepAgents Setup", style="panel_title"),
                 border_style="panel_border",
                 padding=(0, 1),
             )
@@ -111,7 +111,7 @@ def run_config() -> int:
     console.print(
         Panel(
             "Configure API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY, VLM_MODEL_ID, FAST_MODEL_ID",
-            title=Text("Adorable Config", style="panel_title"),
+            title=Text("DeepAgents Config", style="panel_title"),
             border_style="panel_border",
             padding=(0, 1),
         )

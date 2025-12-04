@@ -7,10 +7,10 @@ from dotenv import load_dotenv
 # Load .env file if present
 load_dotenv()
 
-from adorable_cli.agent.builder import build_agent, configure_logging
-from adorable_cli.config import ensure_config_interactive, run_config
-from adorable_cli.console import configure_console
-from adorable_cli.ui.interactive import print_version, run_interactive
+from deepagents_cli.agent.builder import build_agent, configure_logging
+from deepagents_cli.config import ensure_config_interactive, run_config
+from deepagents_cli.console import configure_console
+from deepagents_cli.ui.interactive import print_version, run_interactive
 
 app = typer.Typer(add_completion=False)
 
@@ -33,9 +33,9 @@ def app_entry(
         os.environ["OPENAI_BASE_URL"] = base_url
         os.environ.setdefault("BASE_URL", base_url)
     if model:
-        os.environ["ADORABLE_MODEL_ID"] = model
+        os.environ["DEEPAGENTS_MODEL_ID"] = model
     if fast_model:
-        os.environ["ADORABLE_FAST_MODEL_ID"] = fast_model
+        os.environ["DEEPAGENTS_FAST_MODEL_ID"] = fast_model
     if debug:
         os.environ["AGNO_DEBUG"] = "1"
     if debug_level is not None:

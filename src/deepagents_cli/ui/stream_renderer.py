@@ -9,7 +9,7 @@ from rich.live import Live
 from rich.markdown import Markdown
 from rich.text import Text
 
-from adorable_cli.ui.utils import summarize_args
+from deepagents_cli.ui.utils import summarize_args
 
 
 class StreamRenderer:
@@ -57,8 +57,8 @@ class StreamRenderer:
         
         # Check if cat should be shown
         import os
-        show_cat = os.environ.get("ADORABLE_SHOW_CAT", "true").lower() in ("true", "1", "yes")
-        header_text = "🐱 Adorable:\n" if show_cat else "Adorable:\n"
+        show_cat = os.environ.get("DEEPAGENTS_SHOW_CAT", "true").lower() in ("true", "1", "yes")
+        header_text = "🐱 DeepAgents:\n" if show_cat else "DeepAgents:\n"
         
         if self.first_content:
             # First chunk: set up the header
