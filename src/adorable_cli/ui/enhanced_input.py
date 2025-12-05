@@ -113,7 +113,7 @@ class EnhancedInputSession:
 
         # History
         if history_file is None:
-            history_file = Path.home() / ".deepagents" / "input_history"
+            history_file = Path.home() / ".adorable" / "input_history"
         history_file.parent.mkdir(parents=True, exist_ok=True)
         self.history = FileHistory(str(history_file))
 

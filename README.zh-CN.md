@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="assets/adorable-ai-logo.png" alt="deepagents logo" width="220" />
+<img src="assets/adorable-ai-logo.png" alt="adorable logo" width="220" />
 
-# DeepAgents CLI - 一个通用的“深度工作”智能体
+# Adorable CLI - 一个通用的“深度工作”智能体
 
 <p align="center">
   <a href="#quick-install">快速安装</a> •
@@ -20,7 +20,7 @@
 
 ---
 
-**DeepAgents** 是一个专为复杂、长周期任务设计的命令行自主智能体。它基于 [Agno](https://github.com/agno-agi/agno) 构建，遵循严格的 **计划 → 执行 → 记录 → 验证** 闭环，能够可靠地处理深度研究、代码开发和系统自动化任务。
+**Adorable** 是一个专为复杂、长周期任务设计的命令行自主智能体。它基于 [Agno](https://github.com/agno-agi/agno) 构建，遵循严格的 **计划 → 执行 → 记录 → 验证** 闭环，能够可靠地处理深度研究、代码开发和系统自动化任务。
 
 > 支持 OpenAI 兼容 API。
 
@@ -32,7 +32,7 @@
 
 - **通用自主智能体**：具备规划、研究、编程和复杂执行能力。
 - **深度工作闭环**：系统化地制定计划、执行任务、记录发现并验证结果。
-- **持久化记忆**：利用本地文件系统和 SQLite (`~/.deepagents/memory.db`) 在长会话中保持状态。
+- **持久化记忆**：利用本地文件系统和 SQLite (`~/.adorable/memory.db`) 在长会话中保持状态。
 - **多模态工具集**：
   - **规划**：推理引擎与待办清单（Todo list）管理。
   - **研究**：深度联网搜索 (Tavily) 与网页抓取 (Crawl4AI)。
@@ -47,12 +47,12 @@
 
   | 方法 | 命令 | 适用场景 |
   |---|---|---|
-  | **🚗 一键** | `curl -fsSL https://leonethan.github.io/deepagents-cli/install.sh | bash` | **✅ 首推** - Linux/macOS |
-  | **🐍 pipx** | `pipx install deepagents-cli` | 隔离 CLI 环境 - Linux/macOS |
-  | **📦 pip** | `pip install deepagents-cli` | 传统 Python 环境 |
+  | **🚗 一键** | `curl -fsSL https://leonethan.github.io/adorable-cli/install.sh | bash` | **✅ 首推** - Linux/macOS |
+  | **🐍 pipx** | `pipx install adorable-cli` | 隔离 CLI 环境 - Linux/macOS |
+  | **📦 pip** | `pip install adorable-cli` | 传统 Python 环境 |
 </div>
 
-> 首次运行会引导配置 `API_KEY`、`BASE_URL`、`MODEL_ID`、`TAVILY_API_KEY`，保存到 `~/.deepagents/config`。随时可运行 `da config` 修改。
+> 首次运行会引导配置 `API_KEY`、`BASE_URL`、`MODEL_ID`、`TAVILY_API_KEY`，保存到 `~/.adorable/config`。随时可运行 `da config` 修改。
 
 <div align="center">
   <a id="platform"></a>
@@ -73,7 +73,7 @@
 
 ```bash
 # 进入交互式会话
-deepagents
+adorable
 # 或使用别名
 da
 
@@ -86,7 +86,7 @@ da --help
 
 ### CLI 命令
 
-- `da` / `deepagents`：进入交互聊天
+- `da` / `adorable`：进入交互聊天
 - `da config`：配置 API 密钥和模型
 - `da version`：显示 CLI 版本
 
@@ -117,14 +117,14 @@ da --api-key sk-xxxx --model gpt-4o chat
   ## 🔧 配置
 </div>
 
-- **配置文件**：`~/.deepagents/config`
+- **配置文件**：`~/.adorable/config`
 - **环境变量**：
   - `DEEPAGENTS_API_KEY` / `API_KEY`
   - `DEEPAGENTS_BASE_URL` / `BASE_URL`
   - `DEEPAGENTS_MODEL_ID`
   - `TAVILY_API_KEY`
 
-示例（`~/.deepagents/config`）：
+示例（`~/.adorable/config`）：
 
 ```ini
 API_KEY=sk-xxxx
@@ -144,7 +144,7 @@ MODEL_ID=gpt-4o
 - **执行**：`PythonTools` 用于逻辑/数据处理；`ShellTools` 用于系统操作。
 - **感知**：`ImageUnderstandingTool` 用于视觉输入。
 
-完整系统提示词与指南见 `src/deepagents_cli/prompt.py`。
+完整系统提示词与指南见 `src/adorable_cli/prompt.py`。
 
 <div align="center">
   <a id="examples"></a>

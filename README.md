@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="assets/adorable-ai-logo.png" alt="deepagents logo" width="220" />
+<img src="assets/adorable-ai-logo.png" alt="adorable logo" width="220" />
 
-# DeepAgents CLI - A universal autonomous agent for deep work
+# Adorable CLI - A universal autonomous agent for deep work
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python">
@@ -27,7 +27,7 @@
 
 ---
 
-**DeepAgents** is a command-line autonomous agent built for complex, long-horizon tasks. Built by [Agno](https://github.com/agno-agi/agno), it follows a disciplined **Plan → Execute → Record → Verify** loop to handle research, coding, and system automation deeply and reliably.
+**Adorable** is a command-line autonomous agent built for complex, long-horizon tasks. Built by [Agno](https://github.com/agno-agi/agno), it follows a disciplined **Plan → Execute → Record → Verify** loop to handle research, coding, and system automation deeply and reliably.
 
 > Supports OpenAI-compatible APIs.
 
@@ -42,7 +42,7 @@
 
 - **Universal Autonomous Agent**: Capable of planning, research, coding, and complex execution.
 - **Deep Work Loop**: Systematically plans, executes, records findings, and verifies outputs.
-- **Persistent Memory**: Uses the local file system and SQLite (`~/.deepagents/memory.db`) to maintain state across long sessions.
+- **Persistent Memory**: Uses the local file system and SQLite (`~/.adorable/memory.db`) to maintain state across long sessions.
 - **Multi-Modal Toolset**:
   - **Planning**: Reasoning engine & Todo list management.
   - **Research**: Deep web search (Tavily) & crawling (Crawl4AI).
@@ -57,13 +57,13 @@
 
 | Method | Command | Best For |
 |:------:|---------|----------|
-| **🚗 auto** | `curl -fsSL https://leonethan.github.io/deepagents-cli/install.sh | bash` | **✅ Recommended** - Linux/macOS |
-| **🐍 pipx** | `pipx install deepagents-cli` | Isolated CLI envs - Linux/macOS |
-| **📦 pip** | `pip install deepagents-cli` | Traditional Python environments |
+| **🚗 auto** | `curl -fsSL https://leonethan.github.io/adorable-cli/install.sh | bash` | **✅ Recommended** - Linux/macOS |
+| **🐍 pipx** | `pipx install adorable-cli` | Isolated CLI envs - Linux/macOS |
+| **📦 pip** | `pip install adorable-cli` | Traditional Python environments |
 
 </div>
 
-> On first run you will be guided to set `API_KEY`, `BASE_URL`, `MODEL_ID`, `TAVILY_API_KEY` into `~/.deepagents/config`. You can run `da config` anytime to update.
+> On first run you will be guided to set `API_KEY`, `BASE_URL`, `MODEL_ID`, `TAVILY_API_KEY` into `~/.adorable/config`. You can run `da config` anytime to update.
 
 <div align="center">
   <a id="platform"></a>
@@ -85,7 +85,7 @@
 
 ```bash
 # Start interactive session
-deepagents
+adorable
 # Or use alias
 da
 
@@ -98,7 +98,7 @@ da --help
 
 ### CLI Commands
 
-- `da` / `deepagents`: Start interactive chat
+- `da` / `adorable`: Start interactive chat
 - `da config`: Configure API keys and models
 - `da version`: Print CLI version
 
@@ -129,14 +129,14 @@ da --api-key sk-xxxx --model gpt-4o chat
 
 </div>
 
-- **Config File**: `~/.deepagents/config`
+- **Config File**: `~/.adorable/config`
 - **Environment Variables**:
   - `DEEPAGENTS_API_KEY` / `API_KEY`
   - `DEEPAGENTS_BASE_URL` / `BASE_URL`
   - `DEEPAGENTS_MODEL_ID`
   - `TAVILY_API_KEY`
 
-Example (`~/.deepagents/config`):
+Example (`~/.adorable/config`):
 
 ```ini
 API_KEY=sk-xxxx
@@ -156,7 +156,7 @@ MODEL_ID=gpt-4o
 - **Execution**: `PythonTools` for logic/data; `ShellTools` for system ops.
 - **Perception**: `ImageUnderstandingTool` for visual inputs.
 
-See `src/deepagents_cli/prompt.py` for the full system prompt and guidelines.
+See `src/adorable_cli/prompt.py` for the full system prompt and guidelines.
 
 <div align="center">
 

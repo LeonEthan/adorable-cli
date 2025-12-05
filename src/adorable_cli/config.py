@@ -4,9 +4,9 @@ from pathlib import Path
 from rich.panel import Panel
 from rich.text import Text
 
-from deepagents_cli.console import console
+from adorable_cli.console import console
 
-CONFIG_PATH = Path.home() / ".deepagents"
+CONFIG_PATH = Path.home() / ".adorable"
 CONFIG_FILE = CONFIG_PATH / "config"
 MEM_DB_PATH = CONFIG_PATH / "memory.db"
 
@@ -83,7 +83,7 @@ def ensure_config_interactive() -> dict[str, str]:
         console.print(
             Panel(
                 Text.from_markup(setup_message),
-                title=Text("DeepAgents Setup", style="panel_title"),
+                title=Text("Adorable Setup", style="panel_title"),
                 border_style="panel_border",
                 padding=(0, 1),
             )
@@ -111,7 +111,7 @@ def run_config() -> int:
     console.print(
         Panel(
             "Configure API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY, VLM_MODEL_ID, FAST_MODEL_ID",
-            title=Text("DeepAgents Config", style="panel_title"),
+            title=Text("Adorable Config", style="panel_title"),
             border_style="panel_border",
             padding=(0, 1),
         )
