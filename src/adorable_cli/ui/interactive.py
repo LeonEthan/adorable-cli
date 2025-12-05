@@ -15,19 +15,19 @@ from rich.rule import Rule
 from rich.syntax import Syntax
 from rich.text import Text
 
-from deepagents_cli.console import console
-from deepagents_cli.ui.enhanced_input import create_enhanced_session
-from deepagents_cli.ui.stream_renderer import StreamRenderer
-from deepagents_cli.ui.utils import detect_language_from_extension, summarize_args
+from adorable_cli.console import console
+from adorable_cli.ui.enhanced_input import create_enhanced_session
+from adorable_cli.ui.stream_renderer import StreamRenderer
+from adorable_cli.ui.utils import detect_language_from_extension, summarize_args
 
 
 def print_version() -> int:
     try:
-        ver = pkg_version("deepagents-cli")
-        print(f"deepagents-cli {ver}")
+        ver = pkg_version("adorable-cli")
+        print(f"adorable-cli {ver}")
     except PackageNotFoundError:
         # Fallback when distribution metadata is unavailable (e.g., dev runs)
-        print("deepagents-cli (version unknown)")
+        print("adorable-cli (version unknown)")
     return 0
 
 
@@ -111,7 +111,7 @@ def _show_commands_help(console: Console) -> None:
     console.print(
         Panel(
             help_text,
-            title=Text("DeepAgents CLI", style="panel_title"),
+            title=Text("Adorable CLI", style="panel_title"),
             border_style="panel_border",
             padding=(0, 1),
         )
@@ -307,7 +307,7 @@ def process_agent_stream(
 def run_interactive(agent) -> int:
     # Get configuration
     try:
-        ver = pkg_version("deepagents-cli")
+        ver = pkg_version("adorable-cli")
     except PackageNotFoundError:
         ver = "version unknown"
     model_id = os.environ.get("DEEPAGENTS_MODEL_ID", "gpt-5-mini")
@@ -327,12 +327,12 @@ def run_interactive(agent) -> int:
 [cat_primary]        ██████████████[/cat_primary]
 """
         left_group = Group(
-            Align.center(Text("Welcome to DeepAgents CLI", style="header")),
+            Align.center(Text("Welcome to Adorable CLI", style="header")),
             Align.center(Text.from_markup(pixel_sprite)),
         )
     else:
         left_group = Group(
-            Align.center(Text("Welcome to DeepAgents CLI", style="header")),
+            Align.center(Text("Welcome to Adorable CLI", style="header")),
             Align.center(Text(f"\nVersion {ver}", style="info")),
         )
 
@@ -354,7 +354,7 @@ def run_interactive(agent) -> int:
     console.print(
         Panel(
             Columns([left_group, right_group], equal=True, expand=True),
-            title=Text("DeepAgents CLI", style="panel_title"),
+            title=Text("Adorable CLI", style="panel_title"),
             border_style="panel_border",
             padding=(0, 1),
         )

@@ -7,10 +7,10 @@ from dotenv import load_dotenv
 # Load .env file if present
 load_dotenv()
 
-from deepagents_cli.agent.builder import build_agent, configure_logging
-from deepagents_cli.config import ensure_config_interactive, run_config
-from deepagents_cli.console import configure_console
-from deepagents_cli.ui.interactive import print_version, run_interactive
+from adorable_cli.agent.builder import build_agent, configure_logging
+from adorable_cli.config import ensure_config_interactive, run_config
+from adorable_cli.console import configure_console
+from adorable_cli.ui.interactive import print_version, run_interactive
 
 app = typer.Typer(add_completion=False)
 

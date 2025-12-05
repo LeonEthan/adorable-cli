@@ -6,7 +6,7 @@ from agno.agent import Agent
 from agno.media import Image
 from agno.models.openai import OpenAILike
 from agno.tools import Toolkit
-from deepagents_cli.hooks.context_guard import (
+from adorable_cli.hooks.context_guard import (
     ensure_context_within_window,
     restore_context_settings,
 )
