@@ -63,7 +63,7 @@
 
 </div>
 
-> On first run you will be guided to set `API_KEY`, `BASE_URL`, `MODEL_ID`, `TAVILY_API_KEY` into `~/.adorable/config`. You can run `da config` anytime to update.
+> On first run you will be guided to set `API_KEY`, `BASE_URL`, `MODEL_ID`, `TAVILY_API_KEY` into `~/.adorable/config`. You can run `ador config` anytime to update.
 
 <div align="center">
   <a id="platform"></a>
@@ -87,20 +87,20 @@
 # Start interactive session
 adorable
 # Or use alias
-da
+ador
 
 # Configure settings
-da config
+ador config
 
 # Show help
-da --help
+ador --help
 ```
 
 ### CLI Commands
 
-- `da` / `adorable`: Start interactive chat
-- `da config`: Configure API keys and models
-- `da version`: Print CLI version
+- `ador` / `adorable`: Start interactive chat
+- `ador config`: Configure API keys and models
+- `ador version`: Print CLI version
 
 ### Interactive Shortcuts
 - `Enter`: Submit message
@@ -120,7 +120,7 @@ da --help
 Example:
 
 ```bash
-da --api-key sk-xxxx --model gpt-4o chat
+ador --api-key sk-xxxx --model gpt-4o chat
 ```
 
 <div align="center">
