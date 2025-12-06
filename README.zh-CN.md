@@ -52,7 +52,7 @@
   | **📦 pip** | `pip install adorable-cli` | 传统 Python 环境 |
 </div>
 
-> 首次运行会引导配置 `API_KEY`、`BASE_URL`、`MODEL_ID`、`TAVILY_API_KEY`，保存到 `~/.adorable/config`。随时可运行 `da config` 修改。
+> 首次运行会引导配置 `API_KEY`、`BASE_URL`、`MODEL_ID`、`TAVILY_API_KEY`，保存到 `~/.adorable/config`。随时可运行 `ador config` 修改。
 
 <div align="center">
   <a id="platform"></a>
@@ -75,20 +75,20 @@
 # 进入交互式会话
 adorable
 # 或使用别名
-da
+ador
 
 # 配置设置
-da config
+ador config
 
 # 查看帮助
-da --help
+ador --help
 ```
 
 ### CLI 命令
 
-- `da` / `adorable`：进入交互聊天
-- `da config`：配置 API 密钥和模型
-- `da version`：显示 CLI 版本
+- `ador` / `adorable`：进入交互聊天
+- `ador config`：配置 API 密钥和模型
+- `ador version`：显示 CLI 版本
 
 ### 交互快捷键
 - `Enter`：提交消息
@@ -108,7 +108,7 @@ da --help
 示例：
 
 ```bash
-da --api-key sk-xxxx --model gpt-4o chat
+ador --api-key sk-xxxx --model gpt-4o chat
 ```
 
 <div align="center">
