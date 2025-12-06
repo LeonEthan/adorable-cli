@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.2](https://github.com/LeonEthan/adorable-cli/compare/v0.2.1...v0.2.2) (2025-12-06)
+
+
+### Documentation
+
+* rename da abbreviation to ador ([2bdc12c](https://github.com/LeonEthan/adorable-cli/commit/2bdc12ca94f252e6c803e718bec40d1e77da191d))
+* rename da abbreviation to ador ([9ae79c0](https://github.com/LeonEthan/adorable-cli/commit/9ae79c0181b5ab4ab0bba0bb3fd04f32ac426a60))
+
 ## [0.2.1](https://github.com/LeonEthan/adorable-cli/compare/v0.1.13...v0.2.1) (2025-12-05)
 
 
