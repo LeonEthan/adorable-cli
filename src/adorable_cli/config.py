@@ -10,8 +10,10 @@ CONFIG_PATH = Path.home() / ".adorable"
 CONFIG_FILE = CONFIG_PATH / "config"
 MEM_DB_PATH = CONFIG_PATH / "memory.db"
 
+
 def sanitize(val: str) -> str:
     return val.strip().strip('"').strip("'").strip("`")
+
 
 def parse_kv_file(path: Path) -> dict[str, str]:
     cfg: dict[str, str] = {}
@@ -27,33 +29,33 @@ def parse_kv_file(path: Path) -> dict[str, str]:
             cfg[k.strip()] = v.strip().strip('"').strip("'").strip("`")
     return cfg
 
+
 def write_kv_file(path: Path, data: dict[str, str]) -> None:
     lines = [f"{k}={v}" for k, v in data.items()]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
 
 def load_env_from_config(cfg: dict[str, str]) -> None:
     # Persist requested env vars
     api_key = cfg.get("API_KEY", "")
     base_url = cfg.get("BASE_URL", "")
-    tavily_key = cfg.get("TAVILY_API_KEY", "")
     vlm_model_id = cfg.get("VLM_MODEL_ID", "")
     confirm_mode = cfg.get("CONFIRM_MODE", "")
     if api_key:
-        os.environ.setdefault("API_KEY", api_key)
-        os.environ.setdefault("OPENAI_API_KEY", api_key)
+        os.environ["API_KEY"] = api_key
+        os.environ["OPENAI_API_KEY"] = api_key
     if base_url:
-        os.environ.setdefault("BASE_URL", base_url)
+        os.environ["BASE_URL"] = base_url
         # Common env var name used by OpenAI clients
-        os.environ.setdefault("OPENAI_BASE_URL", base_url)
-    if tavily_key:
-        os.environ.setdefault("TAVILY_API_KEY", tavily_key)
+        os.environ["OPENAI_BASE_URL"] = base_url
     model_id = cfg.get("MODEL_ID", "")
     if model_id:
-        os.environ.setdefault("DEEPAGENTS_MODEL_ID", model_id)
+        os.environ["DEEPAGENTS_MODEL_ID"] = model_id
     if vlm_model_id:
-        os.environ.setdefault("DEEPAGENTS_VLM_MODEL_ID", vlm_model_id)
+        os.environ["DEEPAGENTS_VLM_MODEL_ID"] = vlm_model_id
     if confirm_mode:
-        os.environ.setdefault("DEEPAGENTS_CONFIRM_MODE", confirm_mode)
+        os.environ["DEEPAGENTS_CONFIRM_MODE"] = confirm_mode
+
 
 def ensure_config_interactive() -> dict[str, str]:
     # Ensure configuration directory exists and read existing config if present
@@ -62,9 +64,9 @@ def ensure_config_interactive() -> dict[str, str]:
     if CONFIG_FILE.exists():
         cfg = parse_kv_file(CONFIG_FILE)
 
-    # Four variables are required: API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY
+    # Three variables are required: API_KEY, BASE_URL, MODEL_ID
     # One optional variable: VLM_MODEL_ID (for vision language model)
-    required_keys = ["API_KEY", "BASE_URL", "MODEL_ID", "TAVILY_API_KEY"]
+    required_keys = ["API_KEY", "BASE_URL", "MODEL_ID"]
     missing = [k for k in required_keys if not cfg.get(k, "").strip()]
 
     if missing:
@@ -74,7 +76,6 @@ def ensure_config_interactive() -> dict[str, str]:
 • API_KEY
 • BASE_URL
 • MODEL_ID
-• TAVILY_API_KEY
 
 [tip]Optional:[/tip]
 • VLM_MODEL_ID (for image understanding, defaults to MODEL_ID)
@@ -107,10 +108,18 @@ def ensure_config_interactive() -> dict[str, str]:
     load_env_from_config(cfg)
     return cfg
 
+
+def load_config_silent() -> None:
+    """Load configuration from file if it exists, without prompting."""
+    if CONFIG_FILE.exists():
+        cfg = parse_kv_file(CONFIG_FILE)
+        load_env_from_config(cfg)
+
+
 def run_config() -> int:
     console.print(
         Panel(
-            "Configure API_KEY, BASE_URL, MODEL_ID, TAVILY_API_KEY, VLM_MODEL_ID, FAST_MODEL_ID",
+            "Configure API_KEY, BASE_URL, MODEL_ID, VLM_MODEL_ID, FAST_MODEL_ID",
             title=Text("Adorable Config", style="panel_title"),
             border_style="panel_border",
             padding=(0, 1),
@@ -121,7 +130,6 @@ def run_config() -> int:
     current_key = existing.get("API_KEY", "")
     current_url = existing.get("BASE_URL", "")
     current_model = existing.get("MODEL_ID", "")
-    current_tavily = existing.get("TAVILY_API_KEY", "")
     current_vlm_model = existing.get("VLM_MODEL_ID", "")
     current_fast_model = existing.get("FAST_MODEL_ID", "")
 
@@ -131,8 +139,6 @@ def run_config() -> int:
     base_url = input("Enter new BASE_URL (leave blank to keep): ")
     console.print(Text(f"Current MODEL_ID: {current_model or '(empty)'}", style="info"))
     model_id = input("Enter new MODEL_ID (leave blank to keep): ")
-    console.print(Text(f"Current TAVILY_API_KEY: {current_tavily or '(empty)'}", style="info"))
-    tavily_api_key = input("Enter new TAVILY_API_KEY (leave blank to keep): ")
     console.print(Text(f"Current VLM_MODEL_ID: {current_vlm_model or '(empty)'}", style="info"))
     console.print(
         Text(
@@ -158,8 +164,6 @@ def run_config() -> int:
         new_cfg["BASE_URL"] = sanitize(base_url)
     if model_id.strip():
         new_cfg["MODEL_ID"] = sanitize(model_id)
-    if tavily_api_key.strip():
-        new_cfg["TAVILY_API_KEY"] = sanitize(tavily_api_key)
     if vlm_model_id.strip():
         new_cfg["VLM_MODEL_ID"] = sanitize(vlm_model_id)
     if fast_model_id.strip():
@@ -167,7 +171,5 @@ def run_config() -> int:
 
     write_kv_file(CONFIG_FILE, new_cfg)
     load_env_from_config(new_cfg)
-    console.print(f"Configuration saved to {CONFIG_FILE}", style="success")
-    return 0
     console.print(f"Configuration saved to {CONFIG_FILE}", style="success")
     return 0
