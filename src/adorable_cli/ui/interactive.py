@@ -4,7 +4,7 @@ from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as pkg_version
 from pathlib import Path
 from time import perf_counter
-from typing import Any
+from typing import Any, Callable, Dict, List
 
 from rich.align import Align
 from rich.columns import Columns
@@ -16,6 +16,7 @@ from rich.syntax import Syntax
 from rich.text import Text
 
 from adorable_cli.console import console
+from adorable_cli.settings import settings
 from adorable_cli.ui.enhanced_input import create_enhanced_session
 from adorable_cli.ui.stream_renderer import StreamRenderer
 from adorable_cli.ui.utils import detect_language_from_extension, summarize_args
@@ -41,53 +42,66 @@ def _get_shell_text(targs: dict) -> str:
     return str(val or "")
 
 
+# Command Dispatcher Definition
+CommandCallback = Callable[[str, Any, Console, Any], bool]
+SPECIAL_COMMANDS: Dict[str, CommandCallback] = {}
+EXIT_COMMANDS = ["exit", "exit()", "quit", "q", "bye", "/exit", "/quit", "/q"]
+
+
+def register_command(aliases: List[str], func: CommandCallback):
+    for alias in aliases:
+        SPECIAL_COMMANDS[alias] = func
+
+
+# Command Handlers
+def cmd_exit(cmd: str, session, console: Console, agent) -> bool:
+    console.print("Bye!", style="info")
+    return True
+
+
+def cmd_help(cmd: str, session, console: Console, agent) -> bool:
+    _show_commands_help(console)
+    return True
+
+
+def cmd_clear(cmd: str, session, console: Console, agent) -> bool:
+    console.clear()
+    console.print("[muted]Screen cleared. Type /help for commands.[/muted]")
+    return True
+
+
+def cmd_stats(cmd: str, session, console: Console, agent) -> bool:
+    _show_session_stats(console)
+    return True
+
+
+def cmd_help_input(cmd: str, session, console: Console, agent) -> bool:
+    session.show_quick_help()
+    return True
+
+
+def cmd_enhanced_mode(cmd: str, session, console: Console, agent) -> bool:
+    console.print("[warning]'enhanced-mode' is deprecated. Use '/help' instead.[/warning]")
+    _show_commands_help(console)
+    return True
+
+
+# Register Commands
+register_command(EXIT_COMMANDS, cmd_exit)
+register_command(["/help", "help", "/?"], cmd_help)
+register_command(["/clear", "/cls", "clear", "cls"], cmd_clear)
+register_command(["/stats", "session-stats"], cmd_stats)
+register_command(["help-input"], cmd_help_input)
+register_command(["enhanced-mode"], cmd_enhanced_mode)
+
+
 def handle_special_command(user_input: str, enhanced_session, console: Console, agent) -> bool:
-    """Handle special commands with / prefix. Returns True if command was handled.
-
-    Supports unified / prefix commands:
-    - /help - Show available commands
-    - /clear - Clear screen
-    - /stats - Session statistics
-    - /auto, /normal - Change confirmation mode
-    - /exit - Quit session
-
-    Maintains backward compatibility with legacy commands.
+    """Handle special commands with / prefix using dispatch pattern.
+    Returns True if command was handled.
     """
     cmd = user_input.strip().lower()
-
-    # Exit commands (support both formats)
-    exit_on = ["exit", "exit()", "quit", "q", "bye", "/exit", "/quit", "/q"]
-    if cmd in exit_on:
-        console.print("Bye!", style="info")
-        return True
-
-    # /help - Show all available commands
-    if cmd in ["/help", "help", "/?"]:  # Backward compat: help
-        _show_commands_help(console)
-        return True
-
-    # /clear - Clear screen
-    if cmd in ["/clear", "/cls", "clear", "cls"]:  # Backward compat: clear, cls
-        console.clear()
-        console.print("[muted]Screen cleared. Type /help for commands.[/muted]")
-        return True
-
-    # /stats - Session statistics
-    if cmd in ["/stats", "session-stats"]:  # Backward compat: session-stats
-        _show_session_stats(console)
-        return True
-
-    # Legacy: help-input (show input help)
-    if cmd == "help-input":
-        enhanced_session.show_quick_help()
-        return True
-
-    # Legacy: enhanced-mode (deprecated, redirect to /help)
-    if cmd == "enhanced-mode":
-        console.print("[warning]'enhanced-mode' is deprecated. Use '/help' instead.[/warning]")
-        _show_commands_help(console)
-        return True
-
+    if cmd in SPECIAL_COMMANDS:
+        return SPECIAL_COMMANDS[cmd](cmd, enhanced_session, console, agent)
     return False
 
 
@@ -136,26 +150,53 @@ def _show_session_stats(console: Console) -> None:
     )
 
 
+def _is_deletion_command(cmd_text: str) -> bool:
+    """Check if a shell command contains deletion operations.
+    
+    Returns True for commands that delete files or directories:
+    - rm, rmdir, unlink, trash
+    """
+    patterns = [
+        r'\brm\b',      # rm command
+        r'\brmdir\b',   # rmdir command  
+        r'\bunlink\b',  # unlink command
+        r'\btrash\b',   # trash command (macOS)
+    ]
+    import re
+    lower = cmd_text.lower()
+    return any(re.search(pattern, lower) for pattern in patterns)
+
+
 def handle_tool_confirmation(tool, console: Console) -> bool:
-    """Show tool preview and get user confirmation. Returns True if confirmed."""
+    """Show tool preview and get user confirmation for deletion commands.
+    
+    Auto-approves all commands except:
+    1. Deletion commands (rm, rmdir, etc.) - shows preview and asks for confirmation
+    2. Dangerous commands (rm -rf /, sudo) - hard blocked
+    
+    Returns True if confirmed or auto-approved, False if denied or blocked.
+    """
     tname = getattr(tool, "tool_name", None) or getattr(tool, "name", None) or "tool"
     targs = getattr(tool, "tool_args", None) or {}
 
-    # Hard bans: block dangerous system-level commands regardless of mode
+    # Hard bans: block dangerous system-level commands regardless
     if tname == "run_shell_command":
         cmd_text = _get_shell_text(targs)
         lower = cmd_text.lower().strip()
-        if "rm -rf /" in lower:
+        
+        # Block critical dangerous patterns
+        if "rm -rf /" in lower or " rm -rf / " in lower:
             console.print(Text.from_markup("[error]Blocked dangerous command (hard-ban)[/error]"))
             return False
         if lower.startswith("sudo ") or " sudo " in lower:
             console.print(Text.from_markup("[error]Blocked dangerous command (hard-ban)[/error]"))
             return False
+        
+        # Auto-approve non-deletion commands
+        if not _is_deletion_command(cmd_text):
+            return True
 
-    # Auto mode logic is handled in main_agent.py by setting requires_confirmation=False
-    # If we are here, it means requires_confirmation=True, so we must ask.
-
-    # Normal mode: show detailed preview and ask for confirmation
+    # Show preview and ask confirmation only for deletion commands
     preview_group = []
     header_text = Text(f"Tool: {tname}", style="tool_name")
     preview_group.append(header_text)
@@ -251,16 +292,17 @@ def process_agent_stream(
             for event in stream:
                 etype = getattr(event, "event", "")
 
-                # Handle streaming content
+                # Enable streaming of intermediate content
                 if etype in ("RunContent", "TeamRunContent"):
                     content = getattr(event, "content", "")
                     if content:
                         renderer.update_content(content)
 
                 if etype in ("RunCompleted", "TeamRunCompleted"):
+                    # Set final content from completed event
                     content = getattr(event, "content", "")
-                    if content and not renderer.get_final_text():
-                        renderer.update_content(content)
+                    if content:
+                        renderer.set_final_content(content)
 
                     metrics = getattr(event, "metrics", None)
                     if metrics:
@@ -310,7 +352,8 @@ def run_interactive(agent) -> int:
         ver = pkg_version("adorable-cli")
     except PackageNotFoundError:
         ver = "version unknown"
-    model_id = os.environ.get("DEEPAGENTS_MODEL_ID", "gpt-5-mini")
+    
+    model_id = settings.model_id
     cwd = str(Path.cwd())
     show_cat = os.environ.get("DEEPAGENTS_SHOW_CAT", "true").lower() in ("true", "1", "yes")
 
@@ -346,7 +389,6 @@ def run_interactive(agent) -> int:
         Text("• @ for file completion", style="muted"),
         Text(""),
         Text("Configuration", style="tip"),
-        Rule(style="rule_light"),
         Text(f"Model: {model_id}", style="muted"),
         Text(f"Path: {cwd}", style="muted"),
     )
@@ -386,7 +428,7 @@ def run_interactive(agent) -> int:
         # Handle special commands (returns True if command was handled)
         if handle_special_command(user_input, enhanced_session, console, agent):
             # Update local confirm_mode if it was changed
-            if user_input.lower() in ["exit", "exit()", "quit", "q", "bye"]:
+            if user_input.strip().lower() in EXIT_COMMANDS:
                 break
             continue
 

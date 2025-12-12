@@ -2,16 +2,20 @@
 
 <img src="assets/adorable-ai-logo.png" alt="adorable logo" width="220" />
 
-# Adorable CLI - 一个通用的“深度工作”智能体
+# Adorable CLI - 基于 Agno 构建的 Deep Agent
+
+<p align="center">
+  <img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python">
+  <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License">
+  <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
+</p>
 
 <p align="center">
   <a href="#quick-install">快速安装</a> •
   <a href="#features">特性</a> •
   <a href="#usage">用法</a> •
-  <a href="#build">构建</a> •
-  <a href="#contributing">贡献</a>
-  <br />
-  <br />
+  <a href="#configuration">配置</a>
+</p>
   <a href="README.md"><img src="https://img.shields.io/badge/EN-English-blue" alt="English"></a>
   <a href="README.zh-CN.md"><img src="https://img.shields.io/badge/🇨🇳_中文-red" alt="中文"></a>
 </p>
@@ -20,9 +24,11 @@
 
 ---
 
-**Adorable** 是一个专为复杂、长周期任务设计的命令行自主智能体。它基于 [Agno](https://github.com/agno-agi/agno) 构建，遵循严格的 **计划 → 执行 → 记录 → 验证** 闭环，能够可靠地处理深度研究、代码开发和系统自动化任务。
+**Adorable** 是一个专为复杂、长周期任务设计的 Deep Agent，基于 [Agno](https://github.com/agno-agi/agno) 框架构建。它通过持续的**交叉推理与行动**模式运行——每一步之前先思考，精确执行，分析结果——从而可靠地处理研究、编程和系统自动化任务。
 
-> 支持 OpenAI 兼容 API。
+> 基于 Agno 的智能体架构，具备持久化记忆、工具编排能力，支持 OpenAI 兼容 API。
+
+---
 
 <div align="center">
   <a id="features"></a>
@@ -30,14 +36,15 @@
   ## 🧩 特性
 </div>
 
-- **通用自主智能体**：具备规划、研究、编程和复杂执行能力。
-- **深度工作闭环**：系统化地制定计划、执行任务、记录发现并验证结果。
-- **持久化记忆**：利用本地文件系统和 SQLite (`~/.adorable/memory.db`) 在长会话中保持状态。
+- **Deep Agent**：基于 Agno 框架构建，具备规划、网络搜索、编程和文件操作能力。
+- **交叉思维**：持续的**思考 → 行动 → 分析**循环——每步之前先推理，从不猜测，验证所有假设。
+- **持久化记忆**：使用 SQLite (`~/.adorable/memory.db`) 和会话摘要在长会话中保持上下文。
 - **多模态工具集**：
-  - **规划**：推理引擎与待办清单（Todo list）管理。
-  - **研究**：深度联网搜索 (Tavily) 与网页抓取 (Crawl4AI)。
-  - **执行**：Python 脚本编写与 Shell 命令执行。
-  - **感知**：图像分析视觉能力。
+  - **规划**：推理引擎与待办清单管理。
+  - **文件操作**：文件读取、编辑与搜索。
+  - **网络搜索**：深度网络搜索 (DuckDuckGo) 与网页抓取 (Crawl4AI)。
+  - **编程**：Python 脚本与 Shell 命令。
+  - **视觉**：图像分析视觉能力。
 - **交互式 UI**：功能丰富的终端界面，支持历史记录、自动补全和快捷键。
 
 <div align="center">
@@ -52,7 +59,7 @@
   | **📦 pip** | `pip install adorable-cli` | 传统 Python 环境 |
 </div>
 
-> 首次运行会引导配置 `API_KEY`、`BASE_URL`、`MODEL_ID`、`TAVILY_API_KEY`，保存到 `~/.adorable/config`。随时可运行 `ador config` 修改。
+> 首次运行会引导配置 `API_KEY`、`BASE_URL`、`MODEL_ID`，保存到 `~/.adorable/config`。随时可运行 `ador config` 修改。
 
 <div align="center">
   <a id="platform"></a>
@@ -112,9 +119,9 @@ ador --api-key sk-xxxx --model gpt-4o chat
 ```
 
 <div align="center">
-  <a id="config"></a>
-  
-  ## 🔧 配置
+
+## 🔧 配置
+
 </div>
 
 - **配置文件**：`~/.adorable/config`
@@ -122,34 +129,32 @@ ador --api-key sk-xxxx --model gpt-4o chat
   - `DEEPAGENTS_API_KEY` / `API_KEY`
   - `DEEPAGENTS_BASE_URL` / `BASE_URL`
   - `DEEPAGENTS_MODEL_ID`
-  - `TAVILY_API_KEY`
 
 示例（`~/.adorable/config`）：
 
 ```ini
 API_KEY=sk-xxxx
 BASE_URL=https://api.openai.com/v1
-TAVILY_API_KEY=tvly_xxxx
 MODEL_ID=gpt-4o
 ```
 
 <div align="center">
-  <a id="capabilities"></a>
-  
-  ## 🧠 能力矩阵
+
+## 🧠 Capabilities
+
 </div>
 
 - **规划**：`ReasoningTools` 用于策略思考；`session_state.todos` 用于任务追踪。
-- **研究**：`TavilyTools` 用于搜索；`Crawl4aiTools` 用于抓取；`FileTools` 用于本地上下文。
+- **研究**：`DuckDuckGoTools` 用于搜索；`Crawl4aiTools` 用于抓取；`FileTools` 用于本地上下文。
 - **执行**：`PythonTools` 用于逻辑/数据处理；`ShellTools` 用于系统操作。
 - **感知**：`ImageUnderstandingTool` 用于视觉输入。
 
-完整系统提示词与指南见 `src/adorable_cli/prompt.py`。
+完整系统提示词与指南见 `src/adorable_cli/agent/prompts.py`。
 
 <div align="center">
-  <a id="examples"></a>
-  
-  ## 🧪 示例提示词
+
+## 🧪 示例提示词
+
 </div>
 
 - “调研量子计算的现状并撰写一份 Markdown 总结报告。”

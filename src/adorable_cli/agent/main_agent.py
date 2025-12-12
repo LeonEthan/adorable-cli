@@ -1,26 +1,21 @@
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from agno.agent import Agent
 from agno.models.openai import OpenAILike
 from agno.tools.crawl4ai import Crawl4aiTools
+from agno.tools.duckduckgo import DuckDuckGoTools
 from agno.tools.file import FileTools
 from agno.tools.python import PythonTools
 from agno.tools.reasoning import ReasoningTools
 from agno.tools.shell import ShellTools
-from agno.tools.tavily import TavilyTools
 
-from adorable_cli.hooks.context_guard import ensure_context_within_window, restore_context_settings
-from adorable_cli.prompt import MAIN_AGENT_INSTRUCTIONS
+from adorable_cli.agent.prompts import AGENT_INSTRUCTIONS, AGENT_ROLE
+from adorable_cli.settings import settings
 from adorable_cli.tools.vision_tool import create_image_understanding_tool
 
 
 def create_adorable_agent(
-    model_id: str,
-    api_key: Optional[str],
-    base_url: Optional[str],
-    debug_mode: bool = False,
-    debug_level: Optional[int] = None,
     db: Any = None,
     session_summary_manager: Any = None,
     compression_manager: Any = None,
@@ -32,7 +27,7 @@ def create_adorable_agent(
     # Initialize all tools
     tools = [
         FileTools(base_dir=Path.cwd(), all=True),
-        TavilyTools(),
+        DuckDuckGoTools(),
         Crawl4aiTools(),
         PythonTools(base_dir=Path.cwd()),
         ShellTools(base_dir=Path.cwd()),
@@ -43,10 +38,12 @@ def create_adorable_agent(
     # Create the Agent
     agent = Agent(
         name="Adorable Agent",
-        model=OpenAILike(id=model_id, api_key=api_key, base_url=base_url),
+        model=OpenAILike(
+            id=settings.model_id, api_key=settings.api_key, base_url=settings.base_url
+        ),
         tools=tools,
-        role="You are a universal autonomous agent capable of planning, research, and complex execution.",
-        instructions=MAIN_AGENT_INSTRUCTIONS,
+        role=AGENT_ROLE,
+        instructions=AGENT_INSTRUCTIONS,
         add_datetime_to_context=True,
         # todo list management using session state
         session_state={
@@ -67,8 +64,7 @@ def create_adorable_agent(
         # output format
         markdown=True,
         # built-in debug toggles
-        debug_mode=debug_mode,
-        **({"debug_level": debug_level} if debug_level is not None else {}),
+        debug_mode=settings.debug_mode,
         # Retry strategy
         exponential_backoff=True,
         retries=2,
@@ -76,23 +72,19 @@ def create_adorable_agent(
         # Context compression
         compress_tool_results=True,
         compression_manager=compression_manager,
-        # Context guard hooks
-        pre_hooks=[ensure_context_within_window],
-        post_hooks=[restore_context_settings],
     )
 
-    # Apply confirmation logic
-    python_names = {"execute_python_code", "run_python_code"}
+    # Enable confirmation for shell commands
+    # The handler auto-approves safe operations, only prompts for deletion commands
+    # See handle_tool_confirmation in interactive.py for the logic
     shell_names = {"run_shell_command"}
-
-    target_true = python_names | shell_names
 
     for tk in agent.tools:
         functions = getattr(tk, "functions", {})
         if not isinstance(functions, dict):
             continue
         for name, f in functions.items():
-            if name in target_true:
+            if name in shell_names:
                 try:
                     setattr(f, "requires_confirmation", True)
                 except Exception:

@@ -2,14 +2,11 @@ import os
 from typing import Optional
 
 import typer
-from dotenv import load_dotenv
-
-# Load .env file if present
-load_dotenv()
 
 from adorable_cli.agent.builder import build_agent, configure_logging
-from adorable_cli.config import ensure_config_interactive, run_config
+from adorable_cli.config import ensure_config_interactive, load_config_silent, run_config
 from adorable_cli.console import configure_console
+from adorable_cli.settings import reload_settings
 from adorable_cli.ui.interactive import print_version, run_interactive
 
 app = typer.Typer(add_completion=False)
@@ -26,6 +23,10 @@ def app_entry(
     debug_level: Optional[int] = typer.Option(None, "--debug-level"),
     plain: bool = typer.Option(False, "--plain"),
 ) -> None:
+    # 1. Load config from file first (respects Shell)
+    load_config_silent()
+
+    # 2. Apply CLI args (overwrites everything)
     if api_key:
         os.environ["OPENAI_API_KEY"] = api_key
         os.environ.setdefault("API_KEY", api_key)
@@ -45,6 +46,7 @@ def app_entry(
 
     if ctx.invoked_subcommand is None:
         ensure_config_interactive()
+        reload_settings()
         configure_logging()
         agent = build_agent()
         code = run_interactive(agent)
@@ -66,6 +68,7 @@ def config() -> None:
 @app.command()
 def chat() -> None:
     ensure_config_interactive()
+    reload_settings()
     configure_logging()
     agent = build_agent()
     code = run_interactive(agent)

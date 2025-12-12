@@ -2,7 +2,7 @@
 
 <img src="assets/adorable-ai-logo.png" alt="adorable logo" width="220" />
 
-# Adorable CLI - A universal autonomous agent for deep work
+# Adorable CLI - Deep Agent built on Agno
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python">
@@ -14,8 +14,7 @@
   <a href="#quick-install">Quick Install</a> •
   <a href="#features">Features</a> •
   <a href="#usage">Usage</a> •
-  <a href="#build">Build</a> •
-  <a href="#contributing">Contributing</a>
+  <a href="#configuration">Configuration</a>
 </p>
 
 <p align="center">
@@ -27,9 +26,9 @@
 
 ---
 
-**Adorable** is a command-line autonomous agent built for complex, long-horizon tasks. Built by [Agno](https://github.com/agno-agi/agno), it follows a disciplined **Plan → Execute → Record → Verify** loop to handle research, coding, and system automation deeply and reliably.
+**Adorable** is a deep agent for complex, long-horizon tasks, powered by the [Agno](https://github.com/agno-agi/agno) framework. It operates through continuous **interleaved reasoning and action**—thinking before every step, executing with precision, and analyzing results—to handle research, coding, and system automation reliably.
 
-> Supports OpenAI-compatible APIs.
+> Built on Agno's agent architecture with persistent memory, tool orchestration, and OpenAI-compatible APIs.
 
 ---
 
@@ -40,14 +39,15 @@
 
 </div>
 
-- **Universal Autonomous Agent**: Capable of planning, research, coding, and complex execution.
-- **Deep Work Loop**: Systematically plans, executes, records findings, and verifies outputs.
-- **Persistent Memory**: Uses the local file system and SQLite (`~/.adorable/memory.db`) to maintain state across long sessions.
+- **Deep Agent**: Built on Agno framework for planning, web search, coding, and file operations.
+- **Interleaved Thinking**: Continuous **Think → Act → Analyze** loop—reasons before every step, never guesses, verifies all assumptions.
+- **Persistent Memory**: Uses SQLite (`~/.adorable/memory.db`) and session summaries to maintain context across long sessions.
 - **Multi-Modal Toolset**:
   - **Planning**: Reasoning engine & Todo list management.
-  - **Research**: Deep web search (Tavily) & crawling (Crawl4AI).
-  - **Execution**: Python scripting & Shell commands.
-  - **Perception**: Vision capabilities for image analysis.
+  - **File Operations**: File reading, writing, and directory navigation.
+  - **Web Search**: Deep web search (DuckDuckGo) & crawling (Crawl4AI).
+  - **Coding**: Python scripting & Shell commands.
+  - **Vision**: Vision capabilities for image analysis.
 - **Interactive UI**: Rich terminal interface with history, autocompletion, and shortcuts.
 
 <div align="center">
@@ -63,7 +63,7 @@
 
 </div>
 
-> On first run you will be guided to set `API_KEY`, `BASE_URL`, `MODEL_ID`, `TAVILY_API_KEY` into `~/.adorable/config`. You can run `ador config` anytime to update.
+> On first run you will be guided to set `API_KEY`, `BASE_URL`, `MODEL_ID` into `~/.adorable/config`. You can run `ador config` anytime to update.
 
 <div align="center">
   <a id="platform"></a>
@@ -134,14 +134,12 @@ ador --api-key sk-xxxx --model gpt-4o chat
   - `DEEPAGENTS_API_KEY` / `API_KEY`
   - `DEEPAGENTS_BASE_URL` / `BASE_URL`
   - `DEEPAGENTS_MODEL_ID`
-  - `TAVILY_API_KEY`
 
 Example (`~/.adorable/config`):
 
 ```ini
 API_KEY=sk-xxxx
 BASE_URL=https://api.openai.com/v1
-TAVILY_API_KEY=tvly_xxxx
 MODEL_ID=gpt-4o
 ```
 
@@ -152,11 +150,11 @@ MODEL_ID=gpt-4o
 </div>
 
 - **Planning**: `ReasoningTools` for strategy; `session_state.todos` for task tracking.
-- **Research**: `TavilyTools` for search; `Crawl4aiTools` for scraping; `FileTools` for local context.
+- **Research**: `DuckDuckGoTools` for search; `Crawl4aiTools` for scraping; `FileTools` for local context.
 - **Execution**: `PythonTools` for logic/data; `ShellTools` for system ops.
 - **Perception**: `ImageUnderstandingTool` for visual inputs.
 
-See `src/adorable_cli/prompt.py` for the full system prompt and guidelines.
+See `src/adorable_cli/agent/prompts.py` for the full system prompt and guidelines.
 
 <div align="center">
 
