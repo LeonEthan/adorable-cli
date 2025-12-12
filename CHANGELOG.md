@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.3](https://github.com/LeonEthan/adorable-cli/compare/v0.2.2...v0.2.3) (2025-12-12)
+
+
+### Features
+
+* Implement interleaved thinking and refactor configuration ([d8ffae7](https://github.com/LeonEthan/adorable-cli/commit/d8ffae7bdce36acb49e7fad2617cac8f43fcdabb))
+* Implement interleaved thinking and refactor configuration ([a4b78a8](https://github.com/LeonEthan/adorable-cli/commit/a4b78a80afe0bc1a9fa701efc4c297ec6d8eabba))
+
 ## [0.2.2](https://github.com/LeonEthan/adorable-cli/compare/v0.2.1...v0.2.2) (2025-12-06)
 
 
