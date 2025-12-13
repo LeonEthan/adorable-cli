@@ -26,10 +26,13 @@ def create_adorable_agent(
 
     # Initialize all tools
     tools = [
-        FileTools(base_dir=Path.cwd(), all=True),
+        FileTools(base_dir=Path.cwd()),
         DuckDuckGoTools(),
         Crawl4aiTools(),
-        PythonTools(base_dir=Path.cwd()),
+        PythonTools(
+            base_dir=Path.cwd(),
+            include_tools=["run_python_code"],
+        ),
         ShellTools(base_dir=Path.cwd()),
         create_image_understanding_tool(),
         ReasoningTools(add_instructions=True),
