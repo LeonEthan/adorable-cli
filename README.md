@@ -131,9 +131,9 @@ ador --api-key sk-xxxx --model gpt-4o chat
 
 - **Config File**: `~/.adorable/config`
 - **Environment Variables**:
-  - `DEEPAGENTS_API_KEY` / `API_KEY`
-  - `DEEPAGENTS_BASE_URL` / `BASE_URL`
-  - `DEEPAGENTS_MODEL_ID`
+  - `OPENAI_API_KEY` / `API_KEY`
+  - `OPENAI_BASE_URL` / `BASE_URL`
+  - `DEEPAGENTS_MODEL_ID` / `MODEL_ID`
 
 Example (`~/.adorable/config`):
 
@@ -149,7 +149,7 @@ MODEL_ID=gpt-4o
 
 </div>
 
-- **Planning**: `ReasoningTools` for strategy; `session_state.todos` for task tracking.
+- **Planning**: `ReasoningTools` for strategy; `TodoTools` for task tracking.
 - **Research**: `DuckDuckGoTools` for search; `Crawl4aiTools` for scraping; `FileTools` for local context.
 - **Execution**: `PythonTools` for logic/data; `ShellTools` for system ops.
 - **Perception**: `ImageUnderstandingTool` for visual inputs.
