@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.4](https://github.com/LeonEthan/adorable-cli/compare/v0.2.3...v0.2.4) (2025-12-13)
+
+
+### Bug Fixes
+
+* **ci:** use GITHUB_TOKEN for release-please to fix 403 error ([7c5dd92](https://github.com/LeonEthan/adorable-cli/commit/7c5dd9205b0a553ee094e2bfd2f1c407639a4438))
+* **ci:** use GITHUB_TOKEN instead of failing MY_RELEASE_TOKEN ([c2229c6](https://github.com/LeonEthan/adorable-cli/commit/c2229c68675f2dfc7bf374242a13abb169ab417f))
+
+
+### Documentation
+
+* update README with correct tools and env vars ([9c64a79](https://github.com/LeonEthan/adorable-cli/commit/9c64a79c2a307ff553f8c5cf72b1f02fa92f9279))
+* update README with correct tools and env vars ([d4ea06d](https://github.com/LeonEthan/adorable-cli/commit/d4ea06d6abe45be36b29fbd68db127b935a310ac))
+
 ## [0.2.3](https://github.com/LeonEthan/adorable-cli/compare/v0.2.2...v0.2.3) (2025-12-12)
 
 
