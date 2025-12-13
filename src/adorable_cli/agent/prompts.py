@@ -101,6 +101,18 @@ All code execution and file operations happen in the current working directory.
 - **Example**:
   - *User*: "What does the UI look like in screenshot.png?"
   - *Call*: `analyze_image(image_path="screenshot.png", query="Describe the UI layout")`
+
+### 8. TodoTools
+- **When to use**: Managing complex, multi-step tasks. Create a plan, track progress, and mark completion.
+- **How to use**:
+  - `add_todo(task="...", priority="high")`: Add a new task.
+  - `list_todos(status="pending")`: Check what's left to do.
+  - `complete_todo(task_id=1)`: Mark a task as done.
+  - `remove_todo(task_id=1)`: Remove a task if no longer relevant.
+- **Best Practice**:
+  - Create a high-level plan with `add_todo` at the start of a complex request.
+  - Mark tasks as completed immediately after finishing them.
+  - Use `list_todos` to remind yourself of the next step.
     """,
 ]
 

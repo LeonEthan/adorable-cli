@@ -12,6 +12,7 @@ from agno.tools.shell import ShellTools
 
 from adorable_cli.agent.prompts import AGENT_INSTRUCTIONS, AGENT_ROLE
 from adorable_cli.settings import settings
+from adorable_cli.tools.todo_tools import TodoTools
 from adorable_cli.tools.vision_tool import create_image_understanding_tool
 
 
@@ -26,16 +27,17 @@ def create_adorable_agent(
 
     # Initialize all tools
     tools = [
+        ReasoningTools(add_instructions=True),
         FileTools(base_dir=Path.cwd()),
-        DuckDuckGoTools(),
-        Crawl4aiTools(),
+        ShellTools(base_dir=Path.cwd()),
         PythonTools(
             base_dir=Path.cwd(),
             include_tools=["run_python_code"],
         ),
-        ShellTools(base_dir=Path.cwd()),
+        DuckDuckGoTools(),
+        Crawl4aiTools(),
         create_image_understanding_tool(),
-        ReasoningTools(add_instructions=True),
+        TodoTools(),
     ]
 
     # Create the Agent
@@ -48,10 +50,6 @@ def create_adorable_agent(
         role=AGENT_ROLE,
         instructions=AGENT_INSTRUCTIONS,
         add_datetime_to_context=True,
-        # todo list management using session state
-        session_state={
-            "todos": [],
-        },
         enable_agentic_state=True,
         add_session_state_to_context=True,
         # memory
