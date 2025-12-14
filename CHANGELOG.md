@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.5](https://github.com/LeonEthan/adorable-cli/compare/v0.2.4...v0.2.5) (2025-12-14)
+
+
+### Bug Fixes
+
+* **ci:** pin actions/create-github-app-token to v1 tag ([7a1648a](https://github.com/LeonEthan/adorable-cli/commit/7a1648a15cb9fc5c33e7f129ac5d089ee9aee5b2))
+* **ci:** pin actions/create-github-app-token to v1 tag ([b982b80](https://github.com/LeonEthan/adorable-cli/commit/b982b803a5b0232b66b1b92529804f52c2ca03df))
+* **ci:** use GitHub App token for release-please ([7cb6480](https://github.com/LeonEthan/adorable-cli/commit/7cb6480a46265d4ab0ad14e55006fe275a640f0d))
+* **ci:** use GitHub App token for release-please ([59549a5](https://github.com/LeonEthan/adorable-cli/commit/59549a59a0b09158e1f445f4117ac96ffa299a80))
+
 ## [0.2.4](https://github.com/LeonEthan/adorable-cli/compare/v0.2.3...v0.2.4) (2025-12-13)
 
 
