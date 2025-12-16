@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.6](https://github.com/LeonEthan/adorable-cli/compare/v0.2.5...v0.2.6) (2025-12-16)
+
+
+### Bug Fixes
+
+* escape pipe character in install command within markdown tables ([1af341a](https://github.com/LeonEthan/adorable-cli/commit/1af341a0817698c43f5bb9126c5f63781d7b998c))
+* escape pipe character in install command within markdown tables ([cc3f52f](https://github.com/LeonEthan/adorable-cli/commit/cc3f52ff1a02fb653dc73707d1ccfaba15b8cec5))
+
 ## [0.2.5](https://github.com/LeonEthan/adorable-cli/compare/v0.2.4...v0.2.5) (2025-12-14)
 
 
