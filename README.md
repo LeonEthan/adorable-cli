@@ -57,7 +57,7 @@
 
 | Method | Command | Best For |
 |:------:|---------|----------|
-| **🚗 auto** | `curl -fsSL https://leonethan.github.io/adorable-cli/install.sh | bash` | **✅ Recommended** - Linux/macOS |
+| **🚗 auto** | `curl -fsSL https://leonethan.github.io/adorable-cli/install.sh \| bash` | **✅ Recommended** - Linux/macOS |
 | **🐍 pipx** | `pipx install adorable-cli` | Isolated CLI envs - Linux/macOS |
 | **📦 pip** | `pip install adorable-cli` | Traditional Python environments |
 
