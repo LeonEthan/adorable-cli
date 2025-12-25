@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.7](https://github.com/LeonEthan/adorable-cli/compare/v0.2.6...v0.2.7) (2025-12-25)
+
+
+### Bug Fixes
+
+* robust tool execution and prompt template ([f5351f2](https://github.com/LeonEthan/adorable-cli/commit/f5351f2ab6405ffc92921e7d7fd08fe955738ae2))
+* robust tool execution and prompt template ([fcfd02e](https://github.com/LeonEthan/adorable-cli/commit/fcfd02ed4d79e140eba53b45a752075ac44dbc83))
+
 ## [0.2.6](https://github.com/LeonEthan/adorable-cli/compare/v0.2.5...v0.2.6) (2025-12-16)
 
 
