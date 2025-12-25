@@ -7,8 +7,8 @@ from agno.session.summary import SessionSummaryManager
 from agno.utils.log import configure_agno_logging
 
 from adorable_cli.agent.main_agent import create_adorable_agent
-from adorable_cli.agent.prompts import (COMPRESSION_INSTRUCTIONS,
-                                        SESSION_SUMMARY_PROMPT)
+from adorable_cli.agent.patches import apply_patches
+from adorable_cli.agent.prompts import COMPRESSION_INSTRUCTIONS, SESSION_SUMMARY_PROMPT
 from adorable_cli.settings import settings
 
 
@@ -28,6 +28,9 @@ def build_agent():
     """
     Builds the Adorable Single Agent.
     """
+    # Apply monkey patches for robust tool execution
+    apply_patches()
+
     # Shared user memory database (not fully utilized by Team class yet, but good to have)
     db = SqliteDb(db_file=str(settings.mem_db_path))
 
@@ -41,7 +44,7 @@ def build_agent():
             api_key=settings.api_key,
             base_url=settings.base_url,
             # Smaller cap is sufficient for summaries; providers may ignore
-            max_tokens=4096,
+            max_tokens=8192,
             # Force plain-text outputs for summaries to avoid JSON parsing attempts
             supports_native_structured_outputs=False,
             supports_json_schema_outputs=False,
@@ -52,11 +55,9 @@ def build_agent():
 
     # Configure Custom Compression Manager
     compression_manager = CompressionManager(
-        model=OpenAILike(
-            id=fast_model_id, api_key=settings.api_key, base_url=settings.base_url
-        ),
+        model=OpenAILike(id=fast_model_id, api_key=settings.api_key, base_url=settings.base_url),
         compress_tool_results=True,
-        compress_tool_results_limit=20,
+        compress_tool_results_limit=50,
         compress_tool_call_instructions=COMPRESSION_INSTRUCTIONS,
     )
 
