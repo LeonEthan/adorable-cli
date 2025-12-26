@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.9](https://github.com/LeonEthan/adorable-cli/compare/v0.2.8...v0.2.9) (2025-12-26)
+
+
+### Documentation
+
+* update installation instructions to recommend uv ([11f8c10](https://github.com/LeonEthan/adorable-cli/commit/11f8c10b78085c413cbce14697991292c0253217))
+* update installation instructions to recommend uv ([e305a33](https://github.com/LeonEthan/adorable-cli/commit/e305a33e0c34508e867f7f6a2407f86ac1415041))
+
 ## [0.2.8](https://github.com/LeonEthan/adorable-cli/compare/v0.2.7...v0.2.8) (2025-12-25)
 
 
