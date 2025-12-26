@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.8](https://github.com/LeonEthan/adorable-cli/compare/v0.2.7...v0.2.8) (2025-12-25)
+
+
+### Miscellaneous Chores
+
+* ignore editor config directories ([358fa34](https://github.com/LeonEthan/adorable-cli/commit/358fa344224b9db708cf7651dc6494657e5ecbd3))
+* ignore editor config directories ([b835e87](https://github.com/LeonEthan/adorable-cli/commit/b835e87bbe32d2d31d4e6ad40c60a2738365dec4))
+
 ## [0.2.7](https://github.com/LeonEthan/adorable-cli/compare/v0.2.6...v0.2.7) (2025-12-25)
 
 
