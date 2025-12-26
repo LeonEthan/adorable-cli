@@ -52,11 +52,19 @@
   
   ## ⚡ 快速安装
 
-  | 方法 | 命令 | 适用场景 |
-  |---|---|---|
-  | **🚗 一键** | `curl -fsSL https://leonethan.github.io/adorable-cli/install.sh \| bash` | **✅ 首推** - Linux/macOS |
-  | **🐍 pipx** | `pipx install adorable-cli` | 隔离 CLI 环境 - Linux/macOS |
-  | **📦 pip** | `pip install adorable-cli` | 传统 Python 环境 |
+  我们推荐使用 [uv](https://github.com/astral-sh/uv) 来安装和管理 Adorable CLI。
+
+  ### 安装
+
+  ```bash
+  uv tool install --python 3.13 adorable-cli
+  ```
+
+  ### 升级
+
+  ```bash
+  uv tool upgrade adorable-cli --no-cache
+  ```
 </div>
 
 > 首次运行会引导配置 `API_KEY`、`BASE_URL`、`MODEL_ID`，保存到 `~/.adorable/config`。随时可运行 `ador config` 修改。
