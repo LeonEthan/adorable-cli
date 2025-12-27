@@ -13,6 +13,25 @@ from adorable_cli.ui.interactive import print_version, run_interactive
 app = typer.Typer(add_completion=False)
 
 
+def _run_async(coro):
+    """Helper to run async coroutine in sync context."""
+    # Create a new event loop and run the coroutine
+    try:
+        # Check if we're already in an event loop
+        loop = asyncio.get_running_loop()
+        # If we get here, we're already in an event loop
+        raise RuntimeError(
+            "Cannot use asyncio.run() inside an already running event loop. "
+            "This shouldn't happen in normal CLI usage."
+        )
+    except RuntimeError as e:
+        if "running" in str(e):
+            raise
+        # No running loop, safe to use asyncio.run()
+        return asyncio.run(coro)
+
+
+
 @app.callback(invoke_without_command=True)
 def app_entry(
     ctx: typer.Context,
@@ -50,7 +69,7 @@ def app_entry(
         reload_settings()
         configure_logging()
         agent = build_agent()
-        code = asyncio.run(run_interactive(agent))
+        code = _run_async(run_interactive(agent))
         raise typer.Exit(code)
 
 
@@ -72,7 +91,7 @@ def chat() -> None:
     reload_settings()
     configure_logging()
     agent = build_agent()
-    code = asyncio.run(run_interactive(agent))
+    code = _run_async(run_interactive(agent))
     raise typer.Exit(code)
 
 
