@@ -14,22 +14,14 @@ app = typer.Typer(add_completion=False)
 
 
 def _run_async(coro):
-    """Helper to run async coroutine in sync context."""
     try:
-        # Check if we're already in an event loop
         asyncio.get_running_loop()
-        # If we get here, we're already in an event loop - this shouldn't happen
-        raise RuntimeError(
-            "Cannot use asyncio.run() inside an already running event loop. "
-            "This shouldn't happen in normal CLI usage."
-        )
-    except RuntimeError as e:
-        error_msg = str(e)
-        # If the error is about already having a running loop, re-raise
-        if "already" in error_msg and "running" in error_msg:
-            raise
-        # Otherwise, it's the expected "no running event loop" error - proceed
+    except RuntimeError:
         return asyncio.run(coro)
+    else:
+        if hasattr(coro, "close"):
+            coro.close()
+        raise RuntimeError("Cannot start CLI loop from a running event loop")
 
 
 
@@ -44,10 +36,8 @@ def app_entry(
     debug_level: Optional[int] = typer.Option(None, "--debug-level"),
     plain: bool = typer.Option(False, "--plain"),
 ) -> None:
-    # 1. Load config from file first (respects Shell)
     load_config_silent()
 
-    # 2. Apply CLI args (overwrites everything)
     if api_key:
         os.environ["OPENAI_API_KEY"] = api_key
         os.environ.setdefault("API_KEY", api_key)

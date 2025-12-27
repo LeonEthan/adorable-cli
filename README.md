@@ -115,6 +115,7 @@ ador --help
 - `Alt+Enter` / `Ctrl+J`: Insert newline
 - `@`: File path completion
 - `/`: Command completion (e.g., `/help`, `/clear`)
+- `Ctrl+D` / `exit`: Quit session
 - `Ctrl+Q`: Quick exit
 
 ### Global Options
@@ -173,4 +174,3 @@ See `src/adorable_cli/agent/prompts.py` for the full system prompt and guideline
 - "Research the current state of quantum computing and write a summary markdown file."
 - "Clone the 'requests' repo, analyze the directory structure, and create a diagram."
 - "Plan and execute a data migration script for these CSV files."
-

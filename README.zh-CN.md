@@ -110,6 +110,7 @@ ador --help
 - `Alt+Enter` / `Ctrl+J`：插入换行
 - `@`：文件路径补全
 - `/`：命令补全（如 `/help`，`/clear`）
+- `Ctrl+D` / `exit`：退出会话
 - `Ctrl+Q`：快速退出
 
 ### 全局选项
