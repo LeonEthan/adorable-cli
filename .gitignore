@@ -212,3 +212,6 @@ npm/**/vendor/adorable.exe
 
 # Local PyInstaller venv for testing
 .pyi-venv/
+
+# macOS
+.DS_Store
