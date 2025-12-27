@@ -272,15 +272,18 @@ def handle_tool_confirmation(tool, console: Console) -> bool:
     return resp == "y"
 
 
-def process_agent_stream(
+async def process_agent_stream(
     agent, user_input: str, renderer: StreamRenderer, console: Console
 ) -> tuple[str, Any, datetime, float]:
-    """Process agent stream with tool confirmations. Returns (final_text, metrics, start_time, start_perf)."""
+    """Process agent stream with tool confirmations. Returns (final_text, metrics, start_time, start_perf).
+
+    Async version to support MCPTools and other async tools.
+    """
     final_metrics = None
     start_at = datetime.now()
     start_perf = perf_counter()
 
-    stream = agent.run(user_input, stream=True, stream_intermediate_steps=True)
+    stream = await agent.arun(user_input, stream=True, stream_intermediate_steps=True)
 
     # Start streaming with renderer
     renderer.start_stream()
@@ -329,7 +332,7 @@ def process_agent_stream(
                     confirmed = handle_tool_confirmation(tool, console)
                     setattr(tool, "confirmed", confirmed)
 
-                stream = agent.continue_run(
+                stream = await agent.acontinue_run(
                     run_id=getattr(paused_event, "run_id", None),
                     updated_tools=getattr(paused_event, "tools", None),
                     stream=True,
@@ -346,7 +349,7 @@ def process_agent_stream(
     return final_text, final_metrics, start_at, start_perf
 
 
-def run_interactive(agent) -> int:
+async def run_interactive(agent) -> int:
     # Get configuration
     try:
         ver = pkg_version("adorable-cli")
@@ -434,7 +437,7 @@ def run_interactive(agent) -> int:
 
         try:
             # Process agent stream with tool confirmations
-            final_text, final_metrics, start_at, start_perf = process_agent_stream(
+            final_text, final_metrics, start_at, start_perf = await process_agent_stream(
                 agent, user_input, renderer, console
             )
 

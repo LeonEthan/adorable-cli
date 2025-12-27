@@ -1,3 +1,4 @@
+import asyncio
 import os
 from typing import Optional
 
@@ -49,7 +50,7 @@ def app_entry(
         reload_settings()
         configure_logging()
         agent = build_agent()
-        code = run_interactive(agent)
+        code = asyncio.run(run_interactive(agent))
         raise typer.Exit(code)
 
 
@@ -71,7 +72,7 @@ def chat() -> None:
     reload_settings()
     configure_logging()
     agent = build_agent()
-    code = run_interactive(agent)
+    code = asyncio.run(run_interactive(agent))
     raise typer.Exit(code)
 
 
