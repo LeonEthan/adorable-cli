@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.2.10](https://github.com/LeonEthan/adorable-cli/compare/v0.2.9...v0.2.10) (2025-12-27)
+
+
+### Features
+
+* replace Crawl4aiTools with Fetch MCP ([33a593c](https://github.com/LeonEthan/adorable-cli/commit/33a593c36341170fa097d8beb88f6d62b90cbe8d))
+
+
+### Bug Fixes
+
+* avoid nested asyncio.run in interactive UI ([6b3f578](https://github.com/LeonEthan/adorable-cli/commit/6b3f578ccf16791877dfe38259c89e8dc1a662a7))
+* avoid nested asyncio.run in interactive UI ([3917cad](https://github.com/LeonEthan/adorable-cli/commit/3917cade9244d826e196bbf9c116a7140c512410))
+* correct _run_async exception handling ([a3f7220](https://github.com/LeonEthan/adorable-cli/commit/a3f72203256df37768ce7c1321def5bd83ded9e4))
+* ensure MCPTools connects before agent execution ([d01d560](https://github.com/LeonEthan/adorable-cli/commit/d01d5606a7e31d54a895c25be7e06722aa583f32))
+* simplify async handling for MCPTools ([8f0c4d7](https://github.com/LeonEthan/adorable-cli/commit/8f0c4d7b3d224394817065d154ac7e493b09b74f))
+
+
+### Documentation
+
+* update README to reflect Fetch MCP integration ([f5af07f](https://github.com/LeonEthan/adorable-cli/commit/f5af07fcd9b6dbb35da845cad843f5520a6ff51e))
+
+
+### Miscellaneous Chores
+
+* remove crawl4ai dependency ([4e83bc4](https://github.com/LeonEthan/adorable-cli/commit/4e83bc49eb8fbadda89b3011b3367b37e7850a6f))
+
+
+### Code Refactoring
+
+* make interactive loop async to support MCPTools ([54aa758](https://github.com/LeonEthan/adorable-cli/commit/54aa7585de56ae7f946662233e0b463ef97c93cb))
+
 ## [0.2.9](https://github.com/LeonEthan/adorable-cli/compare/v0.2.8...v0.2.9) (2025-12-26)
 
 
