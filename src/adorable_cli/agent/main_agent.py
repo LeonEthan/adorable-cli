@@ -23,6 +23,8 @@ def create_adorable_agent(
 ) -> Agent:
     """
     Creates a single autonomous agent with all capabilities.
+
+    Note: MCPTools (fetch) connection is managed automatically by the Agent.
     """
 
     # Initialize all tools

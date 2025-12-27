@@ -1,3 +1,4 @@
+import asyncio
 import os
 
 from agno.compression.manager import CompressionManager
@@ -5,6 +6,7 @@ from agno.db.sqlite import SqliteDb
 from agno.models.openai import OpenAILike
 from agno.session.summary import SessionSummaryManager
 from agno.utils.log import configure_agno_logging
+from agno.tools.mcp import MCPTools
 
 from adorable_cli.agent.main_agent import create_adorable_agent
 from adorable_cli.agent.patches import apply_patches
@@ -24,9 +26,10 @@ def configure_logging() -> None:
     configure_agno_logging()
 
 
-def build_agent():
+async def _build_agent_async():
     """
-    Builds the Adorable Single Agent.
+    Builds the Adorable Single Agent with proper MCP initialization.
+    This is an internal async function that handles MCPTools connection.
     """
     # Apply monkey patches for robust tool execution
     apply_patches()
@@ -68,4 +71,21 @@ def build_agent():
         compression_manager=compression_manager,
     )
 
+    # Connect MCP tools (fetch) before returning agent
+    for tool in agent.tools:
+        if isinstance(tool, MCPTools):
+            try:
+                await tool.connect()
+            except Exception as e:
+                print(f"Warning: Failed to connect MCPTools: {e}")
+
     return agent
+
+
+def build_agent():
+    """
+    Builds the Adorable Single Agent.
+    Handles async MCP initialization within a sync context.
+    """
+    # Use asyncio to run the async build process
+    return asyncio.run(_build_agent_async())
