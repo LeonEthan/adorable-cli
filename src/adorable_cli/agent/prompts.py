@@ -113,7 +113,7 @@ Never guess—verify assumptions by reading files or running commands.
 ### Web & Search Tools
 - duckduckgo_search
 - duckduckgo_news
-- crawl
+- fetch
 
 ### Image Tools
 - analyze_image
