@@ -15,19 +15,20 @@ app = typer.Typer(add_completion=False)
 
 def _run_async(coro):
     """Helper to run async coroutine in sync context."""
-    # Create a new event loop and run the coroutine
     try:
         # Check if we're already in an event loop
-        loop = asyncio.get_running_loop()
-        # If we get here, we're already in an event loop
+        asyncio.get_running_loop()
+        # If we get here, we're already in an event loop - this shouldn't happen
         raise RuntimeError(
             "Cannot use asyncio.run() inside an already running event loop. "
             "This shouldn't happen in normal CLI usage."
         )
     except RuntimeError as e:
-        if "running" in str(e):
+        error_msg = str(e)
+        # If the error is about already having a running loop, re-raise
+        if "already" in error_msg and "running" in error_msg:
             raise
-        # No running loop, safe to use asyncio.run()
+        # Otherwise, it's the expected "no running event loop" error - proceed
         return asyncio.run(coro)
 
 
