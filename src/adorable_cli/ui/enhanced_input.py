@@ -210,11 +210,12 @@ class EnhancedInputSession:
 
         return toolbar
 
-    def prompt_user(self, prompt_text: str = "> ") -> str:
+    async def prompt_user(self, prompt_text: str = "> ") -> str:
         """Enhanced user input prompt"""
         try:
-            # Custom prompt using HTML for color
-            user_input = self.session.prompt(HTML(f"<style fg='#10b981'>{prompt_text}</style>"))
+            user_input = await self.session.prompt_async(
+                HTML(f"<style fg='#10b981'>{prompt_text}</style>")
+            )
             return user_input.strip()
         except KeyboardInterrupt:
             self.console.print("[info]Use Ctrl+D or type 'exit' to quit[/info]")

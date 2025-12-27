@@ -1,4 +1,5 @@
 import os
+import inspect
 from datetime import datetime
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as pkg_version
@@ -272,50 +273,76 @@ def handle_tool_confirmation(tool, console: Console) -> bool:
     return resp == "y"
 
 
-def process_agent_stream(
+async def process_agent_stream(
     agent, user_input: str, renderer: StreamRenderer, console: Console
 ) -> tuple[str, Any, datetime, float]:
-    """Process agent stream with tool confirmations. Returns (final_text, metrics, start_time, start_perf)."""
+    """Process agent stream with tool confirmations. Returns (final_text, metrics, start_time, start_perf).
+
+    Async version to support MCPTools and other async tools.
+    """
     final_metrics = None
     start_at = datetime.now()
     start_perf = perf_counter()
 
-    stream = agent.run(user_input, stream=True, stream_intermediate_steps=True)
+    stream = agent.arun(user_input, stream=True, stream_intermediate_steps=True)
+    if inspect.isawaitable(stream):
+        stream = await stream
 
-    # Start streaming with renderer
     renderer.start_stream()
 
     try:
         while True:
             paused_event = None
 
-            for event in stream:
-                etype = getattr(event, "event", "")
+            if hasattr(stream, "__aiter__"):
+                async for event in stream:
+                    etype = getattr(event, "event", "")
 
-                # Enable streaming of intermediate content
-                if etype in ("RunContent", "TeamRunContent"):
-                    content = getattr(event, "content", "")
-                    if content:
-                        renderer.update_content(content)
+                    if etype in ("RunContent", "TeamRunContent"):
+                        content = getattr(event, "content", "")
+                        if content:
+                            renderer.update_content(content)
 
-                if etype in ("RunCompleted", "TeamRunCompleted"):
-                    # Set final content from completed event
-                    content = getattr(event, "content", "")
-                    if content:
-                        renderer.set_final_content(content)
+                    if etype in ("RunCompleted", "TeamRunCompleted"):
+                        content = getattr(event, "content", "")
+                        if content:
+                            renderer.set_final_content(content)
 
-                    metrics = getattr(event, "metrics", None)
-                    if metrics:
-                        final_metrics = metrics
+                        metrics = getattr(event, "metrics", None)
+                        if metrics:
+                            final_metrics = metrics
 
-                if etype in ("ToolCallStarted", "RunToolCallStarted"):
-                    renderer.render_tool_call(event)
+                    if etype in ("ToolCallStarted", "RunToolCallStarted"):
+                        renderer.render_tool_call(event)
 
-                if getattr(event, "is_paused", False):
-                    paused_event = event
-                    break
+                    if getattr(event, "is_paused", False):
+                        paused_event = event
+                        break
+            else:
+                for event in stream:
+                    etype = getattr(event, "event", "")
 
-            # Handle paused event for tool confirmations
+                    if etype in ("RunContent", "TeamRunContent"):
+                        content = getattr(event, "content", "")
+                        if content:
+                            renderer.update_content(content)
+
+                    if etype in ("RunCompleted", "TeamRunCompleted"):
+                        content = getattr(event, "content", "")
+                        if content:
+                            renderer.set_final_content(content)
+
+                        metrics = getattr(event, "metrics", None)
+                        if metrics:
+                            final_metrics = metrics
+
+                    if etype in ("ToolCallStarted", "RunToolCallStarted"):
+                        renderer.render_tool_call(event)
+
+                    if getattr(event, "is_paused", False):
+                        paused_event = event
+                        break
+
             if paused_event is not None:
                 renderer.pause_stream()
 
@@ -329,24 +356,25 @@ def process_agent_stream(
                     confirmed = handle_tool_confirmation(tool, console)
                     setattr(tool, "confirmed", confirmed)
 
-                stream = agent.continue_run(
+                stream = agent.acontinue_run(
                     run_id=getattr(paused_event, "run_id", None),
                     updated_tools=getattr(paused_event, "tools", None),
                     stream=True,
                     stream_intermediate_steps=True,
                 )
+                if inspect.isawaitable(stream):
+                    stream = await stream
                 renderer.resume_stream()
             else:
                 break
     finally:
-        # Always finish the stream properly
         renderer.finish_stream()
 
     final_text = renderer.get_final_text()
     return final_text, final_metrics, start_at, start_perf
 
 
-def run_interactive(agent) -> int:
+async def run_interactive(agent) -> int:
     # Get configuration
     try:
         ver = pkg_version("adorable-cli")
@@ -414,7 +442,7 @@ def run_interactive(agent) -> int:
     while True:
         try:
             # Get user input
-            user_input = enhanced_session.prompt_user(">> ")
+            user_input = await enhanced_session.prompt_user(">> ")
         except KeyboardInterrupt:
             console.print("Bye!", style="info")
             return 0
@@ -434,7 +462,7 @@ def run_interactive(agent) -> int:
 
         try:
             # Process agent stream with tool confirmations
-            final_text, final_metrics, start_at, start_perf = process_agent_stream(
+            final_text, final_metrics, start_at, start_perf = await process_agent_stream(
                 agent, user_input, renderer, console
             )
 

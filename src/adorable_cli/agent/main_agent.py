@@ -3,7 +3,7 @@ from typing import Any
 
 from agno.agent import Agent
 from agno.models.openai import OpenAILike
-from agno.tools.crawl4ai import Crawl4aiTools
+from agno.tools.mcp import MCPTools
 from agno.tools.duckduckgo import DuckDuckGoTools
 from agno.tools.file import FileTools
 from agno.tools.python import PythonTools
@@ -23,6 +23,8 @@ def create_adorable_agent(
 ) -> Agent:
     """
     Creates a single autonomous agent with all capabilities.
+
+    Note: MCPTools (fetch) connection is managed automatically by the Agent.
     """
 
     # Initialize all tools
@@ -35,7 +37,7 @@ def create_adorable_agent(
             include_tools=["run_python_code"],
         ),
         DuckDuckGoTools(),
-        Crawl4aiTools(),
+        MCPTools(command="uvx mcp-server-fetch"),
         create_image_understanding_tool(),
         TodoTools(),
     ]

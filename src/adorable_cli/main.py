@@ -1,3 +1,4 @@
+import asyncio
 import os
 from typing import Optional
 
@@ -12,6 +13,18 @@ from adorable_cli.ui.interactive import print_version, run_interactive
 app = typer.Typer(add_completion=False)
 
 
+def _run_async(coro):
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    else:
+        if hasattr(coro, "close"):
+            coro.close()
+        raise RuntimeError("Cannot start CLI loop from a running event loop")
+
+
+
 @app.callback(invoke_without_command=True)
 def app_entry(
     ctx: typer.Context,
@@ -23,10 +36,8 @@ def app_entry(
     debug_level: Optional[int] = typer.Option(None, "--debug-level"),
     plain: bool = typer.Option(False, "--plain"),
 ) -> None:
-    # 1. Load config from file first (respects Shell)
     load_config_silent()
 
-    # 2. Apply CLI args (overwrites everything)
     if api_key:
         os.environ["OPENAI_API_KEY"] = api_key
         os.environ.setdefault("API_KEY", api_key)
@@ -49,7 +60,7 @@ def app_entry(
         reload_settings()
         configure_logging()
         agent = build_agent()
-        code = run_interactive(agent)
+        code = _run_async(run_interactive(agent))
         raise typer.Exit(code)
 
 
@@ -71,7 +82,7 @@ def chat() -> None:
     reload_settings()
     configure_logging()
     agent = build_agent()
-    code = run_interactive(agent)
+    code = _run_async(run_interactive(agent))
     raise typer.Exit(code)
 
 
