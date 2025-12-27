@@ -45,7 +45,7 @@
 - **Multi-Modal Toolset**:
   - **Planning**: Reasoning engine & Todo list management.
   - **File Operations**: File reading, writing, and directory navigation.
-  - **Web Search**: Deep web search (DuckDuckGo) & crawling (Crawl4AI).
+  - **Web Search**: Deep web search (DuckDuckGo) & web content fetching (Fetch MCP).
   - **Coding**: Python scripting & Shell commands.
   - **Vision**: Vision capabilities for image analysis.
 - **Interactive UI**: Rich terminal interface with history, autocompletion, and shortcuts.
@@ -158,7 +158,7 @@ MODEL_ID=gpt-4o
 </div>
 
 - **Planning**: `ReasoningTools` for strategy; `TodoTools` for task tracking.
-- **Research**: `DuckDuckGoTools` for search; `Crawl4aiTools` for scraping; `FileTools` for local context.
+- **Research**: `DuckDuckGoTools` for search; Fetch MCP for web content extraction; `FileTools` for local context.
 - **Execution**: `PythonTools` for logic/data; `ShellTools` for system ops.
 - **Perception**: `ImageUnderstandingTool` for visual inputs.
 
