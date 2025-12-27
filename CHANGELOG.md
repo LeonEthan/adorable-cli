@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.11](https://github.com/LeonEthan/adorable-cli/compare/v0.2.10...v0.2.11) (2025-12-27)
+
+
+### Miscellaneous Chores
+
+* **assets:** update adorable-ai-logo ([0ed4331](https://github.com/LeonEthan/adorable-cli/commit/0ed43310a815c2ad897e845237995fc8421025af))
+* ignore .DS_Store ([949ced1](https://github.com/LeonEthan/adorable-cli/commit/949ced1c214716e8ede07c61feb7301d0e3f9792))
+
 ## [0.2.10](https://github.com/LeonEthan/adorable-cli/compare/v0.2.9...v0.2.10) (2025-12-27)
 
 
