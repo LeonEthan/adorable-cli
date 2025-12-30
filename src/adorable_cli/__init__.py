@@ -5,4 +5,4 @@ try:
     __version__ = _pkg_version("adorable-cli")
 except Exception:
     # Fallback when running from source or when distribution package is not installed
-    __version__ = "0.2.11"
+    __version__ = "0.2.12"

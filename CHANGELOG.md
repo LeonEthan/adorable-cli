@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.12](https://github.com/LeonEthan/adorable-cli/compare/v0.2.11...v0.2.12) (2025-12-30)
+
+
+### Bug Fixes
+
+* include typer as runtime dependency ([8866007](https://github.com/LeonEthan/adorable-cli/commit/886600770cbc2676445386e0e7e53d626c4ab464))
+* include typer as runtime dependency ([1f15c8b](https://github.com/LeonEthan/adorable-cli/commit/1f15c8b53a0544d197b6719a2a80718e99ad7949))
+
 ## [0.2.11](https://github.com/LeonEthan/adorable-cli/compare/v0.2.10...v0.2.11) (2025-12-27)
 
 
