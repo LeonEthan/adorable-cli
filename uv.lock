@@ -21,6 +21,7 @@ dependencies = [
     { name = "prompt-toolkit" },
     { name = "rich" },
     { name = "sqlalchemy" },
+    { name = "typer" },
 ]
 
 [package.metadata]
@@ -35,6 +36,7 @@ requires-dist = [
     { name = "prompt-toolkit", specifier = ">=3.0.0" },
     { name = "rich", specifier = ">=13.0.0" },
     { name = "sqlalchemy", specifier = ">=2.0.44" },
+    { name = "typer", specifier = ">=0.12.0" },
 ]
 
 [[package]]
