@@ -65,6 +65,12 @@
   ```bash
   uv tool upgrade adorable-cli --no-cache
   ```
+
+  如果升级后遇到依赖缺失（如 `ModuleNotFoundError`），可强制重装：
+
+  ```bash
+  uv tool upgrade adorable-cli --reinstall --no-cache
+  ```
 </div>
 
 > 首次运行会引导配置 `API_KEY`、`BASE_URL`、`MODEL_ID`，保存到 `~/.adorable/config`。随时可运行 `ador config` 修改。

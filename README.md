@@ -69,6 +69,12 @@ uv tool install --python 3.13 adorable-cli
 uv tool upgrade adorable-cli --no-cache
 ```
 
+If you run into missing dependencies after upgrading, force a reinstall:
+
+```bash
+uv tool upgrade adorable-cli --reinstall --no-cache
+```
+
 </div>
 
 > On first run you will be guided to set `API_KEY`, `BASE_URL`, `MODEL_ID` into `~/.adorable/config`. You can run `ador config` anytime to update.
