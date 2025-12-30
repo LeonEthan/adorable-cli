@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.13](https://github.com/LeonEthan/adorable-cli/compare/v0.2.12...v0.2.13) (2025-12-30)
+
+
+### Documentation
+
+* add uv tool reinstall guidance ([6929ad7](https://github.com/LeonEthan/adorable-cli/commit/6929ad795cc0c56f0206ee245ae36d1535407e36))
+
 ## [0.2.12](https://github.com/LeonEthan/adorable-cli/compare/v0.2.11...v0.2.12) (2025-12-30)
 
 
