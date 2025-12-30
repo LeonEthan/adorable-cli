@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Any, List
+from typing import Any, Dict, Optional
 from agno.tools.function import Function, FunctionCall
 import agno.utils.tools
 import agno.models.base
@@ -27,7 +27,7 @@ def safe_get_function_call_for_tool_call(
         
         # Check for concatenated JSONs (e.g. "{...}{...}")
         if _args_str.count("}{") > 0:
-            logger.warning(f"Monkey Patch: Detected malformed arguments (concatenated JSON). Sanitizing...")
+            logger.warning("Monkey Patch: Detected malformed arguments (concatenated JSON). Sanitizing...")
             # Try to keep the first valid JSON object
             try:
                 # Find the first closing brace that matches the first opening brace
@@ -92,7 +92,7 @@ def safe_parse_provider_response(self, response, response_format=None):
                             sanitized = args.split("}{")[0] + "}"
                             json.loads(sanitized) # Verify validity
                             tool_call.function.arguments = sanitized
-                            logger.info(f"Monkey Patch: Repaired tool arguments in provider response.")
+                            logger.info("Monkey Patch: Repaired tool arguments in provider response.")
                         except Exception:
                             # Fallback: empty JSON
                             tool_call.function.arguments = "{}"
