@@ -1,5 +1,7 @@
 import os
+import asyncio
 import inspect
+import types
 from datetime import datetime
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as pkg_version
@@ -21,6 +23,73 @@ from adorable_cli.settings import settings
 from adorable_cli.ui.enhanced_input import create_enhanced_session
 from adorable_cli.ui.stream_renderer import StreamRenderer
 from adorable_cli.ui.utils import detect_language_from_extension, summarize_args
+
+
+def _is_mcp_tool(obj: Any) -> bool:
+    t = type(obj)
+    if t.__name__ in {"MCPTools", "MultiMCPTools"}:
+        return True
+    return t.__module__.startswith("agno.tools.mcp")
+
+
+async def _pin_mcp_tools_to_current_task(agent: Any) -> list[Any]:
+    tools = [t for t in getattr(agent, "tools", []) if _is_mcp_tool(t)]
+    if not tools:
+        return []
+
+    owner_task = asyncio.current_task()
+    if owner_task is None:
+        return []
+
+    pinned: list[Any] = []
+
+    for tool in tools:
+        if getattr(tool, "_adorable_pinned", False):
+            pinned.append(tool)
+            continue
+
+        if hasattr(tool, "connect"):
+            await tool.connect(force=True)
+
+        setattr(tool, "_adorable_owner_task", owner_task)
+        setattr(tool, "_adorable_original_close", getattr(tool, "close", None))
+        setattr(tool, "_adorable_original_connect", getattr(tool, "connect", None))
+        setattr(tool, "_adorable_original_aexit", getattr(tool, "__aexit__", None))
+
+        async def _connect_guard(self, force: bool = False):
+            if asyncio.current_task() is not getattr(self, "_adorable_owner_task", None):
+                return None
+            orig = getattr(self, "_adorable_original_connect", None)
+            if orig is None:
+                return None
+            return await orig(force=force)
+
+        async def _close_noop(self):
+            return None
+
+        async def _aexit_noop(self, _exc_type, _exc_val, _exc_tb):
+            return None
+
+        tool.connect = types.MethodType(_connect_guard, tool)
+        if hasattr(tool, "close"):
+            tool.close = types.MethodType(_close_noop, tool)
+        if hasattr(tool, "__aexit__"):
+            tool.__aexit__ = types.MethodType(_aexit_noop, tool)
+
+        setattr(tool, "_adorable_pinned", True)
+        pinned.append(tool)
+
+    return pinned
+
+
+async def _close_pinned_mcp_tools(pinned: list[Any]) -> None:
+    if not pinned:
+        return
+    for tool in pinned:
+        orig_close = getattr(tool, "_adorable_original_close", None)
+        if orig_close is None:
+            continue
+        await orig_close()
 
 
 def print_version() -> int:
@@ -439,36 +508,35 @@ async def run_interactive(agent) -> int:
     # Initialize renderer once for the session
     renderer = StreamRenderer(console)
 
-    while True:
-        try:
-            # Get user input
-            user_input = await enhanced_session.prompt_user(">> ")
-        except KeyboardInterrupt:
-            console.print("Bye!", style="info")
-            return 0
-        except EOFError:
-            console.print("Bye!", style="info")
-            break
+    pinned_mcp_tools = await _pin_mcp_tools_to_current_task(agent)
 
-        if not user_input:
-            continue
-
-        # Handle special commands (returns True if command was handled)
-        if handle_special_command(user_input, enhanced_session, console, agent):
-            # Update local confirm_mode if it was changed
-            if user_input.strip().lower() in EXIT_COMMANDS:
+    try:
+        while True:
+            try:
+                user_input = await enhanced_session.prompt_user(">> ")
+            except KeyboardInterrupt:
+                console.print("Bye!", style="info")
+                return 0
+            except EOFError:
+                console.print("Bye!", style="info")
                 break
-            continue
 
-        try:
-            # Process agent stream with tool confirmations
-            final_text, final_metrics, start_at, start_perf = await process_agent_stream(
-                agent, user_input, renderer, console
-            )
+            if not user_input:
+                continue
 
-            # Display footer with metrics
-            renderer.render_footer(final_metrics, start_at, start_perf)
-        except Exception:
-            console.print_exception()
+            if handle_special_command(user_input, enhanced_session, console, agent):
+                if user_input.strip().lower() in EXIT_COMMANDS:
+                    break
+                continue
+
+            try:
+                final_text, final_metrics, start_at, start_perf = await process_agent_stream(
+                    agent, user_input, renderer, console
+                )
+                renderer.render_footer(final_metrics, start_at, start_perf)
+            except Exception:
+                console.print_exception()
+    finally:
+        await _close_pinned_mcp_tools(pinned_mcp_tools)
 
     return 0
