@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.14](https://github.com/LeonEthan/adorable-cli/compare/v0.2.13...v0.2.14) (2026-01-03)
+
+
+### Features
+
+* add Playwright MCP support ([70e27cd](https://github.com/LeonEthan/adorable-cli/commit/70e27cdeebc6f907072d4d67727f8bc3a7e3e517))
+* add Playwright MCP support ([705d54c](https://github.com/LeonEthan/adorable-cli/commit/705d54cf2387f0be1049e6d593f26d6cbe8597df))
+
 ## [0.2.13](https://github.com/LeonEthan/adorable-cli/compare/v0.2.12...v0.2.13) (2025-12-30)
 
 
