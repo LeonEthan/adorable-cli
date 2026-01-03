@@ -115,6 +115,30 @@ Never guess—verify assumptions by reading files or running commands.
 - duckduckgo_news
 - fetch
 
+### Playwright Tools
+- browser_close
+- browser_resize
+- browser_console_messages
+- browser_handle_dialog
+- browser_evaluate
+- browser_file_upload
+- browser_fill_form
+- browser_install
+- browser_press_key
+- browser_type
+- browser_navigate
+- browser_navigate_back
+- browser_network_requests
+- browser_run_code
+- browser_take_screenshot
+- browser_snapshot
+- browser_click
+- browser_drag
+- browser_hover
+- browser_select_option
+- browser_tabs
+- browser_wait_for
+
 ### Image Tools
 - analyze_image
 
