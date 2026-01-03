@@ -3,7 +3,7 @@ from typing import Any
 
 from agno.agent import Agent
 from agno.models.openai import OpenAILike
-from agno.tools.mcp import MCPTools
+from agno.tools.mcp import MCPTools, MultiMCPTools
 from agno.tools.duckduckgo import DuckDuckGoTools
 from agno.tools.file import FileTools
 from agno.tools.python import PythonTools
@@ -37,7 +37,12 @@ def create_adorable_agent(
             include_tools=["run_python_code"],
         ),
         DuckDuckGoTools(),
-        MCPTools(command="uvx mcp-server-fetch"),
+        MultiMCPTools(
+            commands=[
+                "uvx mcp-server-fetch",
+                "npx -y @playwright/mcp@latest",
+            ]
+        ),
         create_image_understanding_tool(),
         TodoTools(),
     ]
