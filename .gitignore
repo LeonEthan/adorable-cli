@@ -215,3 +215,6 @@ npm/**/vendor/adorable.exe
 
 # macOS
 .DS_Store
+
+# Claude Code context file (should not be committed)
+CLAUDE.md
