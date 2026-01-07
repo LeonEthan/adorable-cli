@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.15](https://github.com/LeonEthan/adorable-cli/compare/v0.2.14...v0.2.15) (2026-01-07)
+
+
+### Documentation
+
+* add CLAUDE.md guidance file for Claude Code ([5dcd921](https://github.com/LeonEthan/adorable-cli/commit/5dcd9219429a80c9694ae39383787ff04415d9f9))
+* add CLAUDE.md to .gitignore ([101bd0f](https://github.com/LeonEthan/adorable-cli/commit/101bd0fec7e7f935ed37d1b8c281b5a8d792bc75))
+* add CLAUDE.md to .gitignore ([0d4b9c2](https://github.com/LeonEthan/adorable-cli/commit/0d4b9c2731c117036909d7eb5d646a544112f303))
+
 ## [0.2.14](https://github.com/LeonEthan/adorable-cli/compare/v0.2.13...v0.2.14) (2026-01-03)
 
 
