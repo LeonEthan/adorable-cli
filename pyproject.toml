@@ -22,6 +22,7 @@ dependencies = [
     "mcp>=1.17.0",
     "sqlalchemy>=2.0.44",
     "prompt-toolkit>=3.0.0",
+    "update>=0.0.1",
 ]
 requires-python = ">=3.10"
 
