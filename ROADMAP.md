@@ -177,6 +177,7 @@ Adorable CLI should leverage Agno’s native strengths (AgentOS, Teams, Workflow
 - **LSP is low priority**: focus on Agno-native strengths.
 - **Desktop app not required**: AgentOS UI covers visual needs.
 - **JSON config for core; YAML for teams/workflows**.
+- **Config migration**: `~/.adorable/config.json` is canonical; `~/.adorable/config` remains for compatibility.
 
 ---
 

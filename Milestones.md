@@ -20,9 +20,57 @@ Conventions:
     - `src/adorable_cli/workflows/`
     - `src/adorable_cli/knowledge/`
     - `~/.adorable/{teams,workflows,skills,tools,commands}/`
+- **Decisions**:
+  - Core config file (canonical): `~/.adorable/config.json`
+  - Legacy config file (compat): `~/.adorable/config` (`KEY=VALUE`)
+  - Precedence: CLI flags > env vars > `config.json` > `config`
+  - Team config: `~/.adorable/teams/*.yaml`
+  - Workflow config: `~/.adorable/workflows/*.yaml`
 - **DoD**:
   - `docs/` or `ROADMAP.md` updated with final structure
   - Sample config snippets included
+  - Skeleton modules exist for Phase 1–4 (`os/`, `teams/`, `workflows/`, `knowledge/`)
+
+Sample `~/.adorable/config.json`:
+
+```json
+{
+  "openai": {
+    "api_key": "sk-...",
+    "base_url": "https://api.openai.com/v1"
+  },
+  "models": {
+    "default": "gpt-4o",
+    "fast": "gpt-4o-mini",
+    "vlm": "gpt-4o"
+  },
+  "confirm_mode": "ask",
+  "server": {
+    "host": "0.0.0.0",
+    "port": 7777
+  }
+}
+```
+
+Sample `~/.adorable/teams/coding.yaml` (schema placeholder; will be finalized in Milestone 4):
+
+```yaml
+name: coding
+agents:
+  - planner
+  - coder
+  - tester
+```
+
+Sample `~/.adorable/workflows/research.yaml` (schema placeholder; will be finalized in Milestone 6):
+
+```yaml
+name: research
+steps:
+  - search
+  - analyze
+  - write
+```
 
 ---
 

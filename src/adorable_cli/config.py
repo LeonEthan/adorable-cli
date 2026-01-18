@@ -1,5 +1,7 @@
 import os
+import json
 from pathlib import Path
+from typing import Any
 
 from rich.panel import Panel
 from rich.text import Text
@@ -8,7 +10,9 @@ from adorable_cli.console import console
 
 CONFIG_PATH = Path.home() / ".adorable"
 CONFIG_FILE = CONFIG_PATH / "config"
+CONFIG_JSON_FILE = CONFIG_PATH / "config.json"
 MEM_DB_PATH = CONFIG_PATH / "memory.db"
+USER_DIR_NAMES = ("teams", "workflows", "skills", "tools", "commands")
 
 
 def sanitize(val: str) -> str:
@@ -35,10 +39,96 @@ def write_kv_file(path: Path, data: dict[str, str]) -> None:
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def parse_json_file(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    if isinstance(data, dict):
+        return data
+    return {}
+
+
+def write_json_file(path: Path, data: dict[str, Any]) -> None:
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def _get_nested(cfg: dict[str, Any], path: list[str]) -> Any:
+    cur: Any = cfg
+    for p in path:
+        if not isinstance(cur, dict):
+            return None
+        cur = cur.get(p)
+    return cur
+
+
+def normalize_config(cfg: dict[str, Any]) -> dict[str, str]:
+    def pick(*candidates: Any) -> str:
+        for c in candidates:
+            if c is None:
+                continue
+            if isinstance(c, str) and c.strip():
+                return sanitize(c)
+            if isinstance(c, (int, float)):
+                return str(c)
+        return ""
+
+    return {
+        "API_KEY": pick(cfg.get("API_KEY"), _get_nested(cfg, ["openai", "api_key"])),
+        "BASE_URL": pick(cfg.get("BASE_URL"), _get_nested(cfg, ["openai", "base_url"])),
+        "MODEL_ID": pick(cfg.get("MODEL_ID"), _get_nested(cfg, ["models", "default"])),
+        "VLM_MODEL_ID": pick(cfg.get("VLM_MODEL_ID"), _get_nested(cfg, ["models", "vlm"])),
+        "FAST_MODEL_ID": pick(cfg.get("FAST_MODEL_ID"), _get_nested(cfg, ["models", "fast"])),
+        "CONFIRM_MODE": pick(cfg.get("CONFIRM_MODE"), cfg.get("confirm_mode")),
+    }
+
+
+def materialize_json_config(flat_cfg: dict[str, str]) -> dict[str, Any]:
+    return {
+        "openai": {
+            "api_key": flat_cfg.get("API_KEY", ""),
+            "base_url": flat_cfg.get("BASE_URL", ""),
+        },
+        "models": {
+            "default": flat_cfg.get("MODEL_ID", ""),
+            "fast": flat_cfg.get("FAST_MODEL_ID", ""),
+            "vlm": flat_cfg.get("VLM_MODEL_ID", ""),
+        },
+        "confirm_mode": flat_cfg.get("CONFIRM_MODE", ""),
+        "server": {
+            "host": "0.0.0.0",
+            "port": 7777,
+        },
+    }
+
+
+def read_config() -> dict[str, str]:
+    if CONFIG_JSON_FILE.exists():
+        raw = parse_json_file(CONFIG_JSON_FILE)
+        if raw:
+            return normalize_config(raw)
+    return parse_kv_file(CONFIG_FILE)
+
+
+def ensure_user_layout() -> None:
+    CONFIG_PATH.mkdir(parents=True, exist_ok=True)
+    for name in USER_DIR_NAMES:
+        (CONFIG_PATH / name).mkdir(parents=True, exist_ok=True)
+
+
+def write_config(flat_cfg: dict[str, str]) -> None:
+    ensure_user_layout()
+    write_json_file(CONFIG_JSON_FILE, materialize_json_config(flat_cfg))
+    write_kv_file(CONFIG_FILE, flat_cfg)
+
+
 def load_env_from_config(cfg: dict[str, str]) -> None:
     # Persist requested env vars
     api_key = cfg.get("API_KEY", "")
     base_url = cfg.get("BASE_URL", "")
+    fast_model_id = cfg.get("FAST_MODEL_ID", "")
     vlm_model_id = cfg.get("VLM_MODEL_ID", "")
     confirm_mode = cfg.get("CONFIRM_MODE", "")
     if api_key:
@@ -53,16 +143,16 @@ def load_env_from_config(cfg: dict[str, str]) -> None:
         os.environ["DEEPAGENTS_MODEL_ID"] = model_id
     if vlm_model_id:
         os.environ["DEEPAGENTS_VLM_MODEL_ID"] = vlm_model_id
+    if fast_model_id:
+        os.environ["DEEPAGENTS_FAST_MODEL_ID"] = fast_model_id
     if confirm_mode:
         os.environ["DEEPAGENTS_CONFIRM_MODE"] = confirm_mode
 
 
 def ensure_config_interactive() -> dict[str, str]:
     # Ensure configuration directory exists and read existing config if present
-    CONFIG_PATH.mkdir(parents=True, exist_ok=True)
-    cfg: dict[str, str] = {}
-    if CONFIG_FILE.exists():
-        cfg = parse_kv_file(CONFIG_FILE)
+    ensure_user_layout()
+    cfg = read_config()
 
     # Three variables are required: API_KEY, BASE_URL, MODEL_ID
     # One optional variable: VLM_MODEL_ID (for vision language model)
@@ -101,8 +191,8 @@ def ensure_config_interactive() -> dict[str, str]:
             if not cfg.get(key, "").strip():
                 cfg[key] = prompt_required(key)
 
-        write_kv_file(CONFIG_FILE, cfg)
-        console.print(f"Configuration saved to {CONFIG_FILE}", style="success")
+        write_config(cfg)
+        console.print(f"Configuration saved to {CONFIG_JSON_FILE}", style="success")
 
     # Load configuration into environment variables
     load_env_from_config(cfg)
@@ -111,8 +201,8 @@ def ensure_config_interactive() -> dict[str, str]:
 
 def load_config_silent() -> None:
     """Load configuration from file if it exists, without prompting."""
-    if CONFIG_FILE.exists():
-        cfg = parse_kv_file(CONFIG_FILE)
+    if CONFIG_JSON_FILE.exists() or CONFIG_FILE.exists():
+        cfg = read_config()
         load_env_from_config(cfg)
 
 
@@ -125,8 +215,8 @@ def run_config() -> int:
             padding=(0, 1),
         )
     )
-    CONFIG_PATH.mkdir(parents=True, exist_ok=True)
-    existing = parse_kv_file(CONFIG_FILE)
+    ensure_user_layout()
+    existing = read_config()
     current_key = existing.get("API_KEY", "")
     current_url = existing.get("BASE_URL", "")
     current_model = existing.get("MODEL_ID", "")
@@ -169,7 +259,7 @@ def run_config() -> int:
     if fast_model_id.strip():
         new_cfg["FAST_MODEL_ID"] = sanitize(fast_model_id)
 
-    write_kv_file(CONFIG_FILE, new_cfg)
+    write_config(new_cfg)
     load_env_from_config(new_cfg)
-    console.print(f"Configuration saved to {CONFIG_FILE}", style="success")
+    console.print(f"Configuration saved to {CONFIG_JSON_FILE}", style="success")
     return 0

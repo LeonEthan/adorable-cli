@@ -3,7 +3,7 @@ from typing import Any
 
 from agno.agent import Agent
 from agno.models.openai import OpenAILike
-from agno.tools.mcp import MCPTools, MultiMCPTools
+from agno.tools.mcp import MultiMCPTools
 from agno.tools.duckduckgo import DuckDuckGoTools
 from agno.tools.file import FileTools
 from agno.tools.python import PythonTools

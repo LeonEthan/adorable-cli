@@ -39,7 +39,7 @@ It summarizes build/lint/test commands and the expected code style.
 - Help: `ador --help`
 
 ## Configuration Notes
-- Config file: `~/.adorable/config` (KEY=VALUE)
+- Config file: `~/.adorable/config.json` (canonical; legacy `~/.adorable/config` is also maintained)
 - Env vars: `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `DEEPAGENTS_MODEL_ID`
 
 ## Code Style Guidelines
