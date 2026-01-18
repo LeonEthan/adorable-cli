@@ -250,7 +250,8 @@ def workflows_list() -> None:
 
     ensure_user_layout()
     for wf in list_workflows():
-        print(f"{wf.workflow_id}\tbuiltin\t{wf.description}")
+        source = "builtin" if wf.workflow_id in ("research", "code-review") else "custom"
+        print(f"{wf.workflow_id}\t{source}\t{wf.description}")
 
 
 @workflow_app.command("run")
@@ -274,8 +275,6 @@ def workflow_run(
     from adorable_cli.workflows.registry import (
         UnknownWorkflowError,
         get_workflow,
-        run_code_review_workflow,
-        run_research_workflow,
     )
 
     try:
@@ -285,30 +284,23 @@ def workflow_run(
 
     async def run_selected() -> int:
         component = None
-        if not offline and wf.workflow_id == "research":
+        if not offline and wf.requires_component:
             ensure_config_interactive()
             reload_settings()
             configure_logging()
             component = build_component(team=team)
 
-        if wf.workflow_id == "research":
-            result = await run_research_workflow(
-                input_text=input_text,
-                component=component,
-                offline=offline,
-                session_id=session_id,
-                user_id=user_id,
-            )
-        elif wf.workflow_id == "code-review":
-            result = await run_code_review_workflow(
-                input_text=input_text,
-                diff_file=Path(diff_file) if diff_file else None,
-                run_tests=run_tests,
-                tests_cmd=tests_cmd,
-                timeout_s=timeout_s,
-            )
-        else:
-            raise RuntimeError(f"Unhandled workflow: {wf.workflow_id}")
+        result = await wf.run(
+            input_text=input_text,
+            component=component,
+            offline=offline,
+            session_id=session_id,
+            user_id=user_id,
+            diff_file=Path(diff_file) if diff_file else None,
+            run_tests=run_tests,
+            tests_cmd=tests_cmd,
+            timeout_s=timeout_s,
+        )
 
         print(result.output, end="" if result.output.endswith("\n") else "\n")
         return 0

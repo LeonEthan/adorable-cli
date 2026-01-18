@@ -1,28 +1,14 @@
 from __future__ import annotations
 
-import inspect
 import shlex
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Awaitable, Callable
+from typing import Any
 
-
-@dataclass(frozen=True)
-class WorkflowResult:
-    workflow_id: str
-    output: str
-    format: str = "markdown"
-
-
-RunWorkflowFn = Callable[..., Awaitable[WorkflowResult]]
-
-
-@dataclass(frozen=True)
-class WorkflowSpec:
-    workflow_id: str
-    description: str
-    run: RunWorkflowFn
+from adorable_cli.workflows.loader import load_user_workflows
+from adorable_cli.workflows.types import WorkflowResult, WorkflowSpec
+from adorable_cli.workflows.utils import run_component
 
 
 class UnknownWorkflowError(ValueError):
@@ -30,7 +16,7 @@ class UnknownWorkflowError(ValueError):
 
 
 def list_workflows() -> list[WorkflowSpec]:
-    return [
+    builtins = [
         WorkflowSpec(
             workflow_id="research",
             description="search -> analyze -> write",
@@ -40,8 +26,10 @@ def list_workflows() -> list[WorkflowSpec]:
             workflow_id="code-review",
             description="diff parse -> run tests -> summarize findings (markdown report)",
             run=run_code_review_workflow,
+            requires_component=False,
         ),
     ]
+    return builtins + load_user_workflows()
 
 
 def get_workflow(workflow_id: str) -> WorkflowSpec:
@@ -59,6 +47,7 @@ async def run_research_workflow(
     offline: bool = False,
     session_id: str | None = None,
     user_id: str | None = None,
+    **kwargs: Any,
 ) -> WorkflowResult:
     if offline or component is None:
         output = (
@@ -85,7 +74,7 @@ async def run_research_workflow(
         "## Answer\n\n"
         f"User input:\n{input_text.strip()}\n"
     )
-    content = await _run_component(component, prompt, session_id=session_id, user_id=user_id)
+    content = await run_component(component, prompt, session_id=session_id, user_id=user_id)
     return WorkflowResult(workflow_id="research", output=content)
 
 
@@ -96,6 +85,7 @@ async def run_code_review_workflow(
     run_tests: bool = True,
     tests_cmd: str = "pytest -q",
     timeout_s: float = 900.0,
+    **kwargs: Any,
 ) -> WorkflowResult:
     diff_text = ""
     if diff_file is not None:
@@ -126,34 +116,6 @@ async def run_code_review_workflow(
         "- Review the diff for correctness, edge cases, and error handling.\n"
     )
     return WorkflowResult(workflow_id="code-review", output=report)
-
-
-async def _run_component(
-    component: Any,
-    message: str,
-    *,
-    session_id: str | None,
-    user_id: str | None,
-) -> str:
-    resp = component.arun(
-        message,
-        stream=False,
-        stream_intermediate_steps=False,
-        session_id=session_id,
-        user_id=user_id,
-    )
-    if inspect.isawaitable(resp):
-        resp = await resp
-
-    content = getattr(resp, "content", None)
-    if isinstance(content, str) and content.strip():
-        return content
-
-    message_text = getattr(resp, "message", None)
-    if isinstance(message_text, str) and message_text.strip():
-        return message_text
-
-    return str(resp)
 
 
 @dataclass(frozen=True)

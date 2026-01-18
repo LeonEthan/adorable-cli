@@ -11,6 +11,7 @@ from adorable_cli.console import console
 CONFIG_PATH = Path.home() / ".adorable"
 CONFIG_FILE = CONFIG_PATH / "config"
 CONFIG_JSON_FILE = CONFIG_PATH / "config.json"
+WORKFLOWS_DIR = CONFIG_PATH / "workflows"
 MEM_DB_PATH = CONFIG_PATH / "memory.db"
 USER_DIR_NAMES = ("teams", "workflows", "skills", "tools", "commands")
 
