@@ -14,6 +14,10 @@ from adorable_cli.ui.interactive import print_version, run_interactive
 app = typer.Typer(add_completion=False)
 teams_app = typer.Typer(add_completion=False)
 app.add_typer(teams_app, name="teams")
+workflows_app = typer.Typer(add_completion=False)
+workflow_app = typer.Typer(add_completion=False)
+app.add_typer(workflows_app, name="workflows")
+app.add_typer(workflow_app, name="workflow")
 
 
 def _run_async(coro):
@@ -237,6 +241,80 @@ def teams_list() -> None:
     for team_id in available:
         label = "configured" if team_id in configured else "builtin" if team_id in builtin else "unknown"
         print(f"{team_id}\t{label}")
+
+
+@workflows_app.command("list")
+def workflows_list() -> None:
+    from adorable_cli.config import ensure_user_layout
+    from adorable_cli.workflows.registry import list_workflows
+
+    ensure_user_layout()
+    for wf in list_workflows():
+        print(f"{wf.workflow_id}\tbuiltin\t{wf.description}")
+
+
+@workflow_app.command("run")
+def workflow_run(
+    workflow_id: str = typer.Argument(...),
+    input_text: str = typer.Option("", "--input"),
+    offline: bool = typer.Option(False, "--offline"),
+    diff_file: Optional[str] = typer.Option(None, "--diff-file"),
+    run_tests: bool = typer.Option(True, "--run-tests/--no-run-tests"),
+    tests_cmd: str = typer.Option("pytest -q", "--tests-cmd"),
+    timeout_s: float = typer.Option(900.0, "--timeout-s"),
+    session_id: Optional[str] = typer.Option(None, "--session-id"),
+    user_id: Optional[str] = typer.Option(None, "--user-id"),
+    team: Optional[str] = typer.Option(None, "--team"),
+) -> None:
+    from pathlib import Path
+
+    from adorable_cli.agent.builder import build_component, configure_logging
+    from adorable_cli.config import ensure_config_interactive
+    from adorable_cli.settings import reload_settings
+    from adorable_cli.workflows.registry import (
+        UnknownWorkflowError,
+        get_workflow,
+        run_code_review_workflow,
+        run_research_workflow,
+    )
+
+    try:
+        wf = get_workflow(workflow_id)
+    except UnknownWorkflowError as e:
+        raise typer.BadParameter(str(e)) from e
+
+    async def run_selected() -> int:
+        component = None
+        if not offline and wf.workflow_id == "research":
+            ensure_config_interactive()
+            reload_settings()
+            configure_logging()
+            component = build_component(team=team)
+
+        if wf.workflow_id == "research":
+            result = await run_research_workflow(
+                input_text=input_text,
+                component=component,
+                offline=offline,
+                session_id=session_id,
+                user_id=user_id,
+            )
+        elif wf.workflow_id == "code-review":
+            result = await run_code_review_workflow(
+                input_text=input_text,
+                diff_file=Path(diff_file) if diff_file else None,
+                run_tests=run_tests,
+                tests_cmd=tests_cmd,
+                timeout_s=timeout_s,
+            )
+        else:
+            raise RuntimeError(f"Unhandled workflow: {wf.workflow_id}")
+
+        print(result.output, end="" if result.output.endswith("\n") else "\n")
+        return 0
+
+    code = _run_async(run_selected())
+    raise typer.Exit(code)
 
 
 def main() -> int:
