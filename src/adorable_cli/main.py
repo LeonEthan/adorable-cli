@@ -5,13 +5,15 @@ from typing import Optional
 import httpx
 import typer
 
-from adorable_cli.agent.builder import build_agent, configure_logging
+from adorable_cli.agent.builder import build_component, configure_logging
 from adorable_cli.config import ensure_config_interactive, load_config_silent, run_config
 from adorable_cli.console import configure_console
 from adorable_cli.settings import reload_settings, settings
 from adorable_cli.ui.interactive import print_version, run_interactive
 
 app = typer.Typer(add_completion=False)
+teams_app = typer.Typer(add_completion=False)
+app.add_typer(teams_app, name="teams")
 
 
 def _run_async(coro):
@@ -33,6 +35,7 @@ def app_entry(
     base_url: Optional[str] = typer.Option(None, "--base-url"),
     api_key: Optional[str] = typer.Option(None, "--api-key"),
     fast_model: Optional[str] = typer.Option(None, "--fast-model"),
+    team: Optional[str] = typer.Option(None, "--team"),
     debug: bool = typer.Option(False, "--debug"),
     debug_level: Optional[int] = typer.Option(None, "--debug-level"),
     plain: bool = typer.Option(False, "--plain"),
@@ -62,8 +65,11 @@ def app_entry(
         ensure_config_interactive()
         reload_settings()
         configure_logging()
-        agent = build_agent()
-        code = _run_async(run_interactive(agent, session_id=session_id, user_id=user_id))
+        try:
+            component = build_component(team=team)
+        except ValueError as e:
+            raise typer.BadParameter(str(e)) from e
+        code = _run_async(run_interactive(component, session_id=session_id, user_id=user_id))
         raise typer.Exit(code)
 
 
@@ -83,12 +89,16 @@ def config() -> None:
 def chat(
     session_id: Optional[str] = typer.Option(None, "--session-id"),
     user_id: Optional[str] = typer.Option(None, "--user-id"),
+    team: Optional[str] = typer.Option(None, "--team"),
 ) -> None:
     ensure_config_interactive()
     reload_settings()
     configure_logging()
-    agent = build_agent()
-    code = _run_async(run_interactive(agent, session_id=session_id, user_id=user_id))
+    try:
+        component = build_component(team=team)
+    except ValueError as e:
+        raise typer.BadParameter(str(e)) from e
+    code = _run_async(run_interactive(component, session_id=session_id, user_id=user_id))
     raise typer.Exit(code)
 
 
@@ -212,6 +222,21 @@ def attach(
 
     code = _run_async(run_attach())
     raise typer.Exit(code)
+
+
+@teams_app.command("list")
+def teams_list() -> None:
+    from adorable_cli.config import CONFIG_PATH, ensure_user_layout
+    from adorable_cli.teams.builder import list_builtin_team_ids, list_configured_team_ids, list_team_ids
+
+    ensure_user_layout()
+    builtin = set(list_builtin_team_ids())
+    configured = set(list_configured_team_ids(config_path=CONFIG_PATH))
+    available = list_team_ids(config_path=CONFIG_PATH)
+
+    for team_id in available:
+        label = "configured" if team_id in configured else "builtin" if team_id in builtin else "unknown"
+        print(f"{team_id}\t{label}")
 
 
 def main() -> int:

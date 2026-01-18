@@ -24,18 +24,11 @@ def configure_logging() -> None:
     configure_agno_logging()
 
 
-def build_agent():
-    """
-    Builds the Adorable Single Agent.
-    """
-    # Apply monkey patches for robust tool execution
+def _build_shared_resources() -> tuple[SqliteDb, SessionSummaryManager, CompressionManager]:
     apply_patches()
 
-    # Shared user memory database (not fully utilized by Team class yet, but good to have)
     db = SqliteDb(db_file=str(settings.mem_db_path))
 
-    # Configure a dedicated fast model for session summaries if provided
-    # Configure SessionSummaryManager to avoid JSON/structured outputs to prevent parsing warnings
     fast_model_id = settings.fast_model_id or settings.model_id
 
     session_summary_manager = SessionSummaryManager(
@@ -43,17 +36,13 @@ def build_agent():
             id=fast_model_id,
             api_key=settings.api_key,
             base_url=settings.base_url,
-            # Smaller cap is sufficient for summaries; providers may ignore
             max_tokens=8192,
-            # Force plain-text outputs for summaries to avoid JSON parsing attempts
             supports_native_structured_outputs=False,
             supports_json_schema_outputs=False,
         ),
-        # Ask for a plain-text summary only; no JSON or lists
         session_summary_prompt=SESSION_SUMMARY_PROMPT,
     )
 
-    # Configure Custom Compression Manager
     compression_manager = CompressionManager(
         model=OpenAILike(id=fast_model_id, api_key=settings.api_key, base_url=settings.base_url),
         compress_tool_results=True,
@@ -61,11 +50,33 @@ def build_agent():
         compress_tool_call_instructions=COMPRESSION_INSTRUCTIONS,
     )
 
-    # Create the Single Agent
-    agent = create_adorable_agent(
+    return db, session_summary_manager, compression_manager
+
+
+def build_agent():
+    db, session_summary_manager, compression_manager = _build_shared_resources()
+    return create_adorable_agent(
         db=db,
         session_summary_manager=session_summary_manager,
         compression_manager=compression_manager,
     )
 
-    return agent
+
+def build_component(team: str | None = None):
+    db, session_summary_manager, compression_manager = _build_shared_resources()
+
+    if team is None or not str(team).strip():
+        return create_adorable_agent(
+            db=db,
+            session_summary_manager=session_summary_manager,
+            compression_manager=compression_manager,
+        )
+
+    from adorable_cli.teams.builder import create_team
+
+    return create_team(
+        team,
+        db=db,
+        session_summary_manager=session_summary_manager,
+        compression_manager=compression_manager,
+    )

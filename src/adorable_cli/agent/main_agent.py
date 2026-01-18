@@ -20,6 +20,10 @@ def create_adorable_agent(
     db: Any = None,
     session_summary_manager: Any = None,
     compression_manager: Any = None,
+    *,
+    name: str = "Adorable Agent",
+    role: str = AGENT_ROLE,
+    instructions: list[str] = AGENT_INSTRUCTIONS,
 ) -> Agent:
     """
     Creates a single autonomous agent with all capabilities.
@@ -49,13 +53,13 @@ def create_adorable_agent(
 
     # Create the Agent
     agent = Agent(
-        name="Adorable Agent",
+        name=name,
         model=OpenAILike(
             id=settings.model_id, api_key=settings.api_key, base_url=settings.base_url
         ),
         tools=tools,
-        role=AGENT_ROLE,
-        instructions=AGENT_INSTRUCTIONS,
+        role=role,
+        instructions=instructions,
         add_datetime_to_context=True,
         enable_agentic_state=True,
         add_session_state_to_context=True,
