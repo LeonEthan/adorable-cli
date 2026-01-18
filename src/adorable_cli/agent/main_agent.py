@@ -11,6 +11,7 @@ from agno.tools.reasoning import ReasoningTools
 from agno.tools.shell import ShellTools
 
 from adorable_cli.agent.prompts import AGENT_INSTRUCTIONS, AGENT_ROLE
+from adorable_cli.agent.policy import ToolPolicy, apply_tool_policy
 from adorable_cli.settings import settings
 from adorable_cli.tools.todo_tools import TodoTools
 from adorable_cli.tools.vision_tool import create_image_understanding_tool
@@ -24,6 +25,7 @@ def create_adorable_agent(
     name: str = "Adorable Agent",
     role: str = AGENT_ROLE,
     instructions: list[str] = AGENT_INSTRUCTIONS,
+    tool_policy: ToolPolicy | None = None,
 ) -> Agent:
     """
     Creates a single autonomous agent with all capabilities.
@@ -86,20 +88,6 @@ def create_adorable_agent(
         compression_manager=compression_manager,
     )
 
-    # Enable confirmation for shell commands
-    # The handler auto-approves safe operations, only prompts for deletion commands
-    # See handle_tool_confirmation in interactive.py for the logic
-    shell_names = {"run_shell_command"}
-
-    for tk in agent.tools:
-        functions = getattr(tk, "functions", {})
-        if not isinstance(functions, dict):
-            continue
-        for name, f in functions.items():
-            if name in shell_names:
-                try:
-                    setattr(f, "requires_confirmation", True)
-                except Exception:
-                    pass
+    apply_tool_policy(agent, tool_policy or ToolPolicy())
 
     return agent

@@ -8,9 +8,11 @@ from agno.models.openai import OpenAILike
 from agno.team import Team
 
 from adorable_cli.agent.main_agent import create_adorable_agent
+from adorable_cli.agent.policy import ToolPolicy
 from adorable_cli.agent.prompts import AGENT_INSTRUCTIONS, AGENT_ROLE
-from adorable_cli.config import CONFIG_PATH
+from adorable_cli import config as cfg
 from adorable_cli.settings import settings
+from adorable_cli.teams.configured import TeamConfigError, create_team_from_yaml
 
 
 BUILTIN_TEAM_IDS: tuple[str, ...] = ("coding", "research", "planning")
@@ -33,7 +35,8 @@ def list_builtin_team_ids() -> list[str]:
     return [t.team_id for t in BUILTIN_TEAMS]
 
 
-def list_configured_team_ids(config_path: Path = CONFIG_PATH) -> list[str]:
+def list_configured_team_ids(config_path: Path | None = None) -> list[str]:
+    config_path = config_path or cfg.CONFIG_PATH
     teams_dir = config_path / "teams"
     if not teams_dir.exists():
         return []
@@ -49,7 +52,8 @@ def list_configured_team_ids(config_path: Path = CONFIG_PATH) -> list[str]:
     return sorted(names)
 
 
-def list_team_ids(config_path: Path = CONFIG_PATH) -> list[str]:
+def list_team_ids(config_path: Path | None = None) -> list[str]:
+    config_path = config_path or cfg.CONFIG_PATH
     ids = set(list_builtin_team_ids())
     ids.update(list_configured_team_ids(config_path=config_path))
     return sorted(ids)
@@ -81,7 +85,19 @@ def create_team(
             session_summary_manager=session_summary_manager,
             compression_manager=compression_manager,
         )
-    raise ValueError(f"Unknown team: {team_id}. Available: {', '.join(list_team_ids())}")
+    try:
+        return create_team_from_yaml(
+            normalized,
+            config_path=cfg.CONFIG_PATH,
+            db=db,
+            session_summary_manager=session_summary_manager,
+            compression_manager=compression_manager,
+        )
+    except TeamConfigError as e:
+        msg = str(e)
+        if "not found" in msg.lower():
+            raise ValueError(f"Unknown team: {team_id}. Available: {', '.join(list_team_ids())}")
+        raise ValueError(f"Invalid team config for {team_id}: {e}") from e
 
 
 def _mk_instructions(*extra: str) -> list[str]:
@@ -218,6 +234,7 @@ def create_planning_team(
             "You are the Planning Team. Prefer proposing plans and design decisions. "
             "Avoid editing files or running shell commands unless explicitly requested."
         ),
+        tool_policy=ToolPolicy.from_mode("read-only"),
     )
 
     return Team(
@@ -232,4 +249,3 @@ def create_planning_team(
             "Prefer read-only analysis; only execute tools when explicitly requested.",
         ],
     )
-
