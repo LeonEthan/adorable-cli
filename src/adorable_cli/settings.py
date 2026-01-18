@@ -25,6 +25,10 @@ class Settings:
 
     # Paths
     config_path: Path = field(default=Path.home() / ".adorable")
+
+    # Server
+    server_host: str = field(default="0.0.0.0")
+    server_port: int = field(default=7777)
     
     @property
     def mem_db_path(self) -> Path:
@@ -33,6 +37,12 @@ class Settings:
     @classmethod
     def from_env(cls) -> "Settings":
         """Load settings from environment variables."""
+        def parse_int(val: str | None, default: int) -> int:
+            try:
+                return int(val) if val is not None and str(val).strip() else default
+            except Exception:
+                return default
+
         return cls(
             api_key=os.environ.get("OPENAI_API_KEY") or os.environ.get("API_KEY"),
             base_url=os.environ.get("OPENAI_BASE_URL") or os.environ.get("BASE_URL"),
@@ -41,6 +51,13 @@ class Settings:
             vlm_model_id=os.environ.get("DEEPAGENTS_VLM_MODEL_ID") or os.environ.get("VLM_MODEL_ID"),
             debug_mode=os.environ.get("AGNO_DEBUG", "").lower() in ("1", "true", "yes", "on"),
             debug_level=int(os.environ.get("AGNO_DEBUG_LEVEL")) if os.environ.get("AGNO_DEBUG_LEVEL") else None,
+            server_host=os.environ.get("ADORABLE_SERVER_HOST")
+            or os.environ.get("SERVER_HOST")
+            or "0.0.0.0",
+            server_port=parse_int(
+                os.environ.get("ADORABLE_SERVER_PORT") or os.environ.get("SERVER_PORT"),
+                7777,
+            ),
         )
 
     def reload_from_env(self) -> None:
@@ -56,6 +73,15 @@ class Settings:
         self.vlm_model_id = os.environ.get("DEEPAGENTS_VLM_MODEL_ID") or os.environ.get("VLM_MODEL_ID")
         self.debug_mode = os.environ.get("AGNO_DEBUG", "").lower() in ("1", "true", "yes", "on")
         self.debug_level = int(os.environ.get("AGNO_DEBUG_LEVEL")) if os.environ.get("AGNO_DEBUG_LEVEL") else None
+        self.server_host = (
+            os.environ.get("ADORABLE_SERVER_HOST") or os.environ.get("SERVER_HOST") or "0.0.0.0"
+        )
+        try:
+            self.server_port = int(
+                os.environ.get("ADORABLE_SERVER_PORT") or os.environ.get("SERVER_PORT") or "7777"
+            )
+        except Exception:
+            self.server_port = 7777
 
 
 # Global settings instance

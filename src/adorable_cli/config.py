@@ -82,10 +82,18 @@ def normalize_config(cfg: dict[str, Any]) -> dict[str, str]:
         "VLM_MODEL_ID": pick(cfg.get("VLM_MODEL_ID"), _get_nested(cfg, ["models", "vlm"])),
         "FAST_MODEL_ID": pick(cfg.get("FAST_MODEL_ID"), _get_nested(cfg, ["models", "fast"])),
         "CONFIRM_MODE": pick(cfg.get("CONFIRM_MODE"), cfg.get("confirm_mode")),
+        "SERVER_HOST": pick(cfg.get("SERVER_HOST"), _get_nested(cfg, ["server", "host"])),
+        "SERVER_PORT": pick(cfg.get("SERVER_PORT"), _get_nested(cfg, ["server", "port"])),
     }
 
 
 def materialize_json_config(flat_cfg: dict[str, str]) -> dict[str, Any]:
+    def parse_int(val: str, default: int) -> int:
+        try:
+            return int(val)
+        except Exception:
+            return default
+
     return {
         "openai": {
             "api_key": flat_cfg.get("API_KEY", ""),
@@ -98,8 +106,8 @@ def materialize_json_config(flat_cfg: dict[str, str]) -> dict[str, Any]:
         },
         "confirm_mode": flat_cfg.get("CONFIRM_MODE", ""),
         "server": {
-            "host": "0.0.0.0",
-            "port": 7777,
+            "host": flat_cfg.get("SERVER_HOST", "") or "0.0.0.0",
+            "port": parse_int(flat_cfg.get("SERVER_PORT", ""), 7777),
         },
     }
 
@@ -131,6 +139,8 @@ def load_env_from_config(cfg: dict[str, str]) -> None:
     fast_model_id = cfg.get("FAST_MODEL_ID", "")
     vlm_model_id = cfg.get("VLM_MODEL_ID", "")
     confirm_mode = cfg.get("CONFIRM_MODE", "")
+    server_host = cfg.get("SERVER_HOST", "")
+    server_port = cfg.get("SERVER_PORT", "")
     if api_key:
         os.environ["API_KEY"] = api_key
         os.environ["OPENAI_API_KEY"] = api_key
@@ -147,6 +157,12 @@ def load_env_from_config(cfg: dict[str, str]) -> None:
         os.environ["DEEPAGENTS_FAST_MODEL_ID"] = fast_model_id
     if confirm_mode:
         os.environ["DEEPAGENTS_CONFIRM_MODE"] = confirm_mode
+    if server_host:
+        os.environ["ADORABLE_SERVER_HOST"] = server_host
+        os.environ.setdefault("SERVER_HOST", server_host)
+    if server_port:
+        os.environ["ADORABLE_SERVER_PORT"] = server_port
+        os.environ.setdefault("SERVER_PORT", server_port)
 
 
 def ensure_config_interactive() -> dict[str, str]:
@@ -222,6 +238,8 @@ def run_config() -> int:
     current_model = existing.get("MODEL_ID", "")
     current_vlm_model = existing.get("VLM_MODEL_ID", "")
     current_fast_model = existing.get("FAST_MODEL_ID", "")
+    current_server_host = existing.get("SERVER_HOST", "")
+    current_server_port = existing.get("SERVER_PORT", "")
 
     console.print(Text(f"Current API_KEY: {current_key or '(empty)'}", style="info"))
     api_key = input("Enter new API_KEY (leave blank to keep): ")
@@ -247,6 +265,15 @@ def run_config() -> int:
     )
     fast_model_id = input("Enter new FAST_MODEL_ID (leave blank to keep): ")
 
+    console.print(
+        Text(f"Current SERVER_HOST: {current_server_host or '(default: 0.0.0.0)'}", style="info")
+    )
+    server_host = input("Enter new SERVER_HOST (leave blank to keep): ")
+    console.print(
+        Text(f"Current SERVER_PORT: {current_server_port or '(default: 7777)'}", style="info")
+    )
+    server_port = input("Enter new SERVER_PORT (leave blank to keep): ")
+
     new_cfg = dict(existing)
     if api_key.strip():
         new_cfg["API_KEY"] = sanitize(api_key)
@@ -258,6 +285,10 @@ def run_config() -> int:
         new_cfg["VLM_MODEL_ID"] = sanitize(vlm_model_id)
     if fast_model_id.strip():
         new_cfg["FAST_MODEL_ID"] = sanitize(fast_model_id)
+    if server_host.strip():
+        new_cfg["SERVER_HOST"] = sanitize(server_host)
+    if server_port.strip():
+        new_cfg["SERVER_PORT"] = sanitize(server_port)
 
     write_config(new_cfg)
     load_env_from_config(new_cfg)

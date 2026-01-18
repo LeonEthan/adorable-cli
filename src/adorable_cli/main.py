@@ -2,12 +2,13 @@ import asyncio
 import os
 from typing import Optional
 
+import httpx
 import typer
 
 from adorable_cli.agent.builder import build_agent, configure_logging
 from adorable_cli.config import ensure_config_interactive, load_config_silent, run_config
 from adorable_cli.console import configure_console
-from adorable_cli.settings import reload_settings
+from adorable_cli.settings import reload_settings, settings
 from adorable_cli.ui.interactive import print_version, run_interactive
 
 app = typer.Typer(add_completion=False)
@@ -84,6 +85,70 @@ def chat() -> None:
     agent = build_agent()
     code = _run_async(run_interactive(agent))
     raise typer.Exit(code)
+
+
+@app.command()
+def serve(
+    host: Optional[str] = typer.Option(None, "--host"),
+    port: Optional[int] = typer.Option(None, "--port"),
+    reload: bool = typer.Option(False, "--reload"),
+    check: bool = typer.Option(False, "--check"),
+) -> None:
+    ensure_config_interactive()
+    reload_settings()
+    configure_logging()
+
+    effective_host = host or settings.server_host
+    effective_port = port or settings.server_port
+
+    if host:
+        os.environ["ADORABLE_SERVER_HOST"] = host
+    if port is not None:
+        os.environ["ADORABLE_SERVER_PORT"] = str(port)
+
+    if check:
+        from adorable_cli.os.server import create_agent_os
+
+        agent_os = create_agent_os()
+        app = agent_os.get_app()
+
+        async def run_check() -> int:
+            transport = httpx.ASGITransport(app=app)
+            async with httpx.AsyncClient(
+                transport=transport,
+                base_url="http://adorable.local",
+            ) as client:
+                resp = await client.get("/status")
+            return resp.status_code
+
+        status = _run_async(run_check())
+        raise typer.Exit(0 if status == 200 else 1)
+
+    try:
+        import uvicorn
+    except ImportError as e:
+        raise RuntimeError(
+            "uvicorn is required for `ador serve`. Install it with: pip install uvicorn"
+        ) from e
+
+    if reload:
+        uvicorn.run(
+            "adorable_cli.os.server:app",
+            host=effective_host,
+            port=effective_port,
+            reload=True,
+        )
+        raise typer.Exit(0)
+
+    from adorable_cli.os.server import create_agent_os
+
+    agent_os = create_agent_os()
+    uvicorn.run(
+        agent_os.get_app(),
+        host=effective_host,
+        port=effective_port,
+    )
+    raise typer.Exit(0)
 
 
 def main() -> int:
