@@ -36,6 +36,8 @@ def app_entry(
     debug: bool = typer.Option(False, "--debug"),
     debug_level: Optional[int] = typer.Option(None, "--debug-level"),
     plain: bool = typer.Option(False, "--plain"),
+    session_id: Optional[str] = typer.Option(None, "--session-id"),
+    user_id: Optional[str] = typer.Option(None, "--user-id"),
 ) -> None:
     load_config_silent()
 
@@ -61,7 +63,7 @@ def app_entry(
         reload_settings()
         configure_logging()
         agent = build_agent()
-        code = _run_async(run_interactive(agent))
+        code = _run_async(run_interactive(agent, session_id=session_id, user_id=user_id))
         raise typer.Exit(code)
 
 
@@ -78,12 +80,15 @@ def config() -> None:
 
 
 @app.command()
-def chat() -> None:
+def chat(
+    session_id: Optional[str] = typer.Option(None, "--session-id"),
+    user_id: Optional[str] = typer.Option(None, "--user-id"),
+) -> None:
     ensure_config_interactive()
     reload_settings()
     configure_logging()
     agent = build_agent()
-    code = _run_async(run_interactive(agent))
+    code = _run_async(run_interactive(agent, session_id=session_id, user_id=user_id))
     raise typer.Exit(code)
 
 
@@ -149,6 +154,64 @@ def serve(
         port=effective_port,
     )
     raise typer.Exit(0)
+
+
+@app.command()
+def attach(
+    url: str = typer.Argument(...),
+    agent_id: Optional[str] = typer.Option(None, "--agent-id"),
+    user_id: Optional[str] = typer.Option(None, "--user-id"),
+    session_id: Optional[str] = typer.Option(None, "--session-id"),
+    token: Optional[str] = typer.Option(None, "--token"),
+    list_sessions: bool = typer.Option(False, "--list-sessions"),
+    limit: int = typer.Option(20, "--limit"),
+) -> None:
+    async def run_attach() -> int:
+        from agno.client import AgentOSClient
+        from agno.db.base import SessionType
+
+        from adorable_cli.os.remote_agent import RemoteAgent
+
+        base_url = url.strip()
+        if "://" not in base_url:
+            base_url = f"http://{base_url}"
+
+        headers = {"Authorization": f"Bearer {token}"} if token else None
+        client = AgentOSClient(base_url=base_url)
+
+        config = await client.aget_config(headers=headers)
+        effective_agent_id = agent_id or (config.agents[0].id if config.agents else None)
+        if effective_agent_id is None:
+            raise RuntimeError("No agents available on the remote AgentOS instance.")
+
+        if list_sessions:
+            sessions = await client.get_sessions(
+                session_type=SessionType.AGENT,
+                component_id=effective_agent_id,
+                user_id=user_id,
+                limit=limit,
+                headers=headers,
+            )
+            for s in sessions.data:
+                name = getattr(s, "session_name", None) or ""
+                suffix = f"  {name}" if name else ""
+                print(f"{s.session_id}{suffix}")
+            return 0
+
+        effective_user_id = user_id or os.environ.get("ADORABLE_USER_ID") or os.environ.get("USER")
+        remote_agent = RemoteAgent(
+            client=client,
+            agent_id=effective_agent_id,
+            session_id=session_id,
+            user_id=effective_user_id,
+            headers=headers,
+        )
+
+        code = await run_interactive(remote_agent)
+        return code
+
+    code = _run_async(run_attach())
+    raise typer.Exit(code)
 
 
 def main() -> int:

@@ -343,7 +343,13 @@ def handle_tool_confirmation(tool, console: Console) -> bool:
 
 
 async def process_agent_stream(
-    agent, user_input: str, renderer: StreamRenderer, console: Console
+    agent,
+    user_input: str,
+    renderer: StreamRenderer,
+    console: Console,
+    *,
+    session_id: str | None = None,
+    user_id: str | None = None,
 ) -> tuple[str, Any, datetime, float]:
     """Process agent stream with tool confirmations. Returns (final_text, metrics, start_time, start_perf).
 
@@ -353,7 +359,13 @@ async def process_agent_stream(
     start_at = datetime.now()
     start_perf = perf_counter()
 
-    stream = agent.arun(user_input, stream=True, stream_intermediate_steps=True)
+    stream = agent.arun(
+        user_input,
+        stream=True,
+        stream_intermediate_steps=True,
+        session_id=session_id,
+        user_id=user_id,
+    )
     if inspect.isawaitable(stream):
         stream = await stream
 
@@ -430,6 +442,8 @@ async def process_agent_stream(
                     updated_tools=getattr(paused_event, "tools", None),
                     stream=True,
                     stream_intermediate_steps=True,
+                    session_id=session_id,
+                    user_id=user_id,
                 )
                 if inspect.isawaitable(stream):
                     stream = await stream
@@ -443,7 +457,7 @@ async def process_agent_stream(
     return final_text, final_metrics, start_at, start_perf
 
 
-async def run_interactive(agent) -> int:
+async def run_interactive(agent, *, session_id: str | None = None, user_id: str | None = None) -> int:
     # Get configuration
     try:
         ver = pkg_version("adorable-cli")
@@ -531,7 +545,12 @@ async def run_interactive(agent) -> int:
 
             try:
                 final_text, final_metrics, start_at, start_perf = await process_agent_stream(
-                    agent, user_input, renderer, console
+                    agent,
+                    user_input,
+                    renderer,
+                    console,
+                    session_id=session_id,
+                    user_id=user_id,
                 )
                 renderer.render_footer(final_metrics, start_at, start_perf)
             except Exception:
