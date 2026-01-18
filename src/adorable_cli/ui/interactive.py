@@ -33,6 +33,12 @@ def _is_mcp_tool(obj: Any) -> bool:
 
 
 async def _pin_mcp_tools_to_current_task(agent: Any) -> list[Any]:
+    if os.environ.get("ADORABLE_DISABLE_MCP", "").lower() in {"1", "true", "yes", "on"}:
+        return []
+
+    if os.environ.get("ADORABLE_MCP_PIN_ON_STARTUP", "").lower() not in {"1", "true", "yes", "on"}:
+        return []
+
     tools = [t for t in getattr(agent, "tools", []) if _is_mcp_tool(t)]
     if not tools:
         return []
@@ -49,7 +55,11 @@ async def _pin_mcp_tools_to_current_task(agent: Any) -> list[Any]:
             continue
 
         if hasattr(tool, "connect"):
-            await tool.connect(force=True)
+            timeout_s = float(os.environ.get("ADORABLE_MCP_CONNECT_TIMEOUT", "10.0"))
+            try:
+                await asyncio.wait_for(tool.connect(force=True), timeout=timeout_s)
+            except Exception:
+                continue
 
         setattr(tool, "_adorable_owner_task", owner_task)
         setattr(tool, "_adorable_original_close", getattr(tool, "close", None))
