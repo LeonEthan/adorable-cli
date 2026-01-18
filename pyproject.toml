@@ -26,6 +26,8 @@ dependencies = [
     "prompt-toolkit>=3.0.0",
     "update>=0.0.1",
     "uvicorn>=0.30.0",
+    "lancedb>=0.17.0",
+    "pandas>=2.0.0",
 ]
 requires-python = ">=3.10"
 

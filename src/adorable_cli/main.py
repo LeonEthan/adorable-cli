@@ -19,6 +19,70 @@ workflow_app = typer.Typer(add_completion=False)
 app.add_typer(workflows_app, name="workflows")
 app.add_typer(workflow_app, name="workflow")
 
+kb_app = typer.Typer(add_completion=False)
+app.add_typer(kb_app, name="kb")
+
+
+@kb_app.command("create")
+def kb_create(
+    name: str = typer.Argument(..., help="Name of the knowledge base"),
+    path: str = typer.Argument(..., help="Path to directory containing documents"),
+) -> None:
+    from pathlib import Path
+
+    from adorable_cli.knowledge.manager import KnowledgeManager
+
+    manager = KnowledgeManager(name=name)
+    print(f"Indexing documents from {path} into '{name}'...")
+    try:
+        count = manager.load_directory(Path(path))
+        print(f"Successfully indexed {count} documents.")
+    except Exception as e:
+        print(f"Error: {e}")
+        raise typer.Exit(1)
+
+
+@kb_app.command("search")
+def kb_search(
+    name: str = typer.Argument(..., help="Name of the knowledge base"),
+    query: str = typer.Argument(..., help="Query string"),
+    limit: int = typer.Option(5, "--limit", "-l", help="Number of results"),
+) -> None:
+    from adorable_cli.knowledge.manager import KnowledgeManager
+
+    manager = KnowledgeManager(name=name)
+    # Check existence by checking if dir exists
+    if not manager.kb_path.exists():
+        print(f"Knowledge base '{name}' does not exist.")
+        raise typer.Exit(1)
+
+    print(f"Searching '{name}' for: {query}")
+    try:
+        results = manager.search(query, num_results=limit)
+    except Exception as e:
+        print(f"Error during search: {e}")
+        raise typer.Exit(1)
+
+    if not results:
+        print("No results found.")
+    else:
+        for i, res in enumerate(results, 1):
+            print(f"\n--- Result {i} (Score: {res.get('score', 0.0):.4f}) ---")
+            print(f"Source: {res.get('name', 'unknown')}")
+            content = res.get("content", "")
+            # Truncate content for display
+            display_content = content[:500] + "..." if len(content) > 500 else content
+            print(display_content)
+
+
+@kb_app.command("update")
+def kb_update(
+    name: str = typer.Argument(..., help="Name of the knowledge base"),
+    path: str = typer.Argument(..., help="Path to directory to re-index"),
+) -> None:
+    # Same as create for now, as upsert is True
+    kb_create(name, path)
+
 
 def _run_async(coro):
     try:

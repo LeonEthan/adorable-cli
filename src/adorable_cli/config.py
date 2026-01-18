@@ -8,7 +8,7 @@ from rich.text import Text
 
 from adorable_cli.console import console
 
-CONFIG_PATH = Path.home() / ".adorable"
+CONFIG_PATH = Path(os.environ.get("ADORABLE_HOME", Path.home() / ".adorable"))
 CONFIG_FILE = CONFIG_PATH / "config"
 CONFIG_JSON_FILE = CONFIG_PATH / "config.json"
 WORKFLOWS_DIR = CONFIG_PATH / "workflows"
