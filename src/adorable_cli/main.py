@@ -22,6 +22,12 @@ app.add_typer(workflow_app, name="workflow")
 kb_app = typer.Typer(add_completion=False)
 app.add_typer(kb_app, name="kb")
 
+eval_app = typer.Typer(add_completion=False)
+app.add_typer(eval_app, name="eval")
+
+db_app = typer.Typer(add_completion=False)
+app.add_typer(db_app, name="db")
+
 
 @kb_app.command("create")
 def kb_create(
@@ -82,6 +88,74 @@ def kb_update(
 ) -> None:
     # Same as create for now, as upsert is True
     kb_create(name, path)
+
+
+@eval_app.command("run")
+def eval_run(
+    suite_path: str = typer.Argument(..., help="Path to eval suite YAML file"),
+    team: Optional[str] = typer.Option(None, "--team"),
+    output: Optional[str] = typer.Option(None, "--output", help="Path to save report"),
+) -> None:
+    from pathlib import Path
+    from adorable_cli.evals.runner import EvalRunner
+    
+    runner = EvalRunner()
+    path = Path(suite_path)
+    if not path.exists():
+        print(f"Eval suite not found: {path}")
+        raise typer.Exit(1)
+        
+    suite = runner.load_suite(path)
+    print(f"Running eval suite: {suite.name} ({len(suite.cases)} cases)")
+    
+    async def run():
+        report = await runner.run_suite(suite, team=team)
+        return report
+
+    report = _run_async(run())
+    
+    print(f"\nResults: {report.passed}/{report.total} passed")
+    for res in report.results:
+        status = "PASS" if res.success else "FAIL"
+        print(f"[{status}] {res.case.input[:50]}...")
+        if not res.success:
+            print(f"  Expected: {res.case.expected or res.case.expected_contains}")
+            print(f"  Actual:   {res.actual_output}")
+            if res.error:
+                print(f"  Error:    {res.error}")
+
+    if output:
+        with open(output, "w") as f:
+            f.write(report.json(indent=2))
+        print(f"Report saved to {output}")
+        
+    if report.failed > 0:
+        raise typer.Exit(1)
+
+
+@eval_app.command("report")
+def eval_report(
+    path: str = typer.Argument(..., help="Path to report JSON file"),
+) -> None:
+    import json
+    from pathlib import Path
+    
+    p = Path(path)
+    if not p.exists():
+        print(f"Report not found: {path}")
+        raise typer.Exit(1)
+        
+    with open(p, "r") as f:
+        data = json.load(f)
+        
+    print(f"Report: {data.get('suite_name', 'Unknown')}")
+    print(f"Score: {data.get('passed')}/{data.get('total')}")
+
+
+@db_app.command("migrate")
+def db_migrate() -> None:
+    from adorable_cli.db.migrations import run_migrations
+    run_migrations()
 
 
 def _run_async(coro):
