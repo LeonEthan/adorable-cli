@@ -20,6 +20,8 @@ from rich.text import Text
 
 from adorable_cli.console import console
 from adorable_cli.settings import settings
+from adorable_cli.config import CONFIG_PATH
+from adorable_cli.ext.commands import CommandsLoader
 from adorable_cli.ui.enhanced_input import create_enhanced_session
 from adorable_cli.ui.stream_renderer import StreamRenderer
 from adorable_cli.ui.utils import detect_language_from_extension, summarize_args
@@ -534,6 +536,12 @@ async def run_interactive(agent, *, session_id: str | None = None, user_id: str 
 
     pinned_mcp_tools = await _pin_mcp_tools_to_current_task(agent)
 
+    # Load custom commands
+    commands_loader = CommandsLoader(CONFIG_PATH / "commands")
+    custom_commands = commands_loader.load_commands()
+    if custom_commands:
+        console.print(f"[info]Loaded {len(custom_commands)} custom commands[/info]")
+
     try:
         while True:
             try:
@@ -552,6 +560,14 @@ async def run_interactive(agent, *, session_id: str | None = None, user_id: str 
                 if user_input.strip().lower() in EXIT_COMMANDS:
                     break
                 continue
+
+            # Check for custom slash commands
+            if user_input.startswith("/"):
+                cmd_key = user_input[1:].strip()
+                if cmd_key in custom_commands:
+                    cmd_obj = custom_commands[cmd_key]
+                    console.print(f"[info]Running command /{cmd_key}[/info]")
+                    user_input = cmd_obj.prompt
 
             try:
                 final_text, final_metrics, start_at, start_perf = await process_agent_stream(

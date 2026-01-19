@@ -26,6 +26,7 @@ def create_adorable_agent(
     role: str = AGENT_ROLE,
     instructions: list[str] = AGENT_INSTRUCTIONS,
     tool_policy: ToolPolicy | None = None,
+    extra_tools: list[Any] | None = None,
 ) -> Agent:
     """
     Creates a single autonomous agent with all capabilities.
@@ -52,6 +53,9 @@ def create_adorable_agent(
         create_image_understanding_tool(),
         TodoTools(),
     ]
+
+    if extra_tools:
+        tools.extend(extra_tools)
 
     # Create the Agent
     agent = Agent(

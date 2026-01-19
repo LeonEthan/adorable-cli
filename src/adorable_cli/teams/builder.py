@@ -65,6 +65,7 @@ def create_team(
     db: Any = None,
     session_summary_manager: Any = None,
     compression_manager: Any = None,
+    extra_tools: list[Any] | None = None,
 ) -> Team:
     normalized = (team_id or "").strip().lower()
     if normalized == "coding":
@@ -72,20 +73,24 @@ def create_team(
             db=db,
             session_summary_manager=session_summary_manager,
             compression_manager=compression_manager,
+            extra_tools=extra_tools,
         )
     if normalized == "research":
         return create_research_team(
             db=db,
             session_summary_manager=session_summary_manager,
             compression_manager=compression_manager,
+            extra_tools=extra_tools,
         )
     if normalized == "planning":
         return create_planning_team(
             db=db,
             session_summary_manager=session_summary_manager,
             compression_manager=compression_manager,
+            extra_tools=extra_tools,
         )
     try:
+        # TODO: Pass extra_tools to configured teams if supported
         return create_team_from_yaml(
             normalized,
             config_path=cfg.CONFIG_PATH,
@@ -115,11 +120,13 @@ def create_coding_team(
     db: Any = None,
     session_summary_manager: Any = None,
     compression_manager: Any = None,
+    extra_tools: list[Any] | None = None,
 ) -> Team:
     planner = create_adorable_agent(
         db=db,
         session_summary_manager=session_summary_manager,
         compression_manager=compression_manager,
+        extra_tools=extra_tools,
         name="Planner",
         role=f"{AGENT_ROLE}. Primary focus: planning and decomposition.",
         instructions=_mk_instructions(
@@ -131,6 +138,7 @@ def create_coding_team(
         db=db,
         session_summary_manager=session_summary_manager,
         compression_manager=compression_manager,
+        extra_tools=extra_tools,
         name="Coder",
         role=f"{AGENT_ROLE}. Primary focus: implementation.",
         instructions=_mk_instructions(
@@ -142,6 +150,7 @@ def create_coding_team(
         db=db,
         session_summary_manager=session_summary_manager,
         compression_manager=compression_manager,
+        extra_tools=extra_tools,
         name="Tester",
         role=f"{AGENT_ROLE}. Primary focus: tests and validation.",
         instructions=_mk_instructions(
@@ -169,11 +178,13 @@ def create_research_team(
     db: Any = None,
     session_summary_manager: Any = None,
     compression_manager: Any = None,
+    extra_tools: list[Any] | None = None,
 ) -> Team:
     searcher = create_adorable_agent(
         db=db,
         session_summary_manager=session_summary_manager,
         compression_manager=compression_manager,
+        extra_tools=extra_tools,
         name="Searcher",
         role=f"{AGENT_ROLE}. Primary focus: gather information and evidence.",
         instructions=_mk_instructions(
@@ -185,6 +196,7 @@ def create_research_team(
         db=db,
         session_summary_manager=session_summary_manager,
         compression_manager=compression_manager,
+        extra_tools=extra_tools,
         name="Analyst",
         role=f"{AGENT_ROLE}. Primary focus: analysis and synthesis.",
         instructions=_mk_instructions(
@@ -196,6 +208,7 @@ def create_research_team(
         db=db,
         session_summary_manager=session_summary_manager,
         compression_manager=compression_manager,
+        extra_tools=extra_tools,
         name="Writer",
         role=f"{AGENT_ROLE}. Primary focus: produce the final write-up.",
         instructions=_mk_instructions(
@@ -223,11 +236,13 @@ def create_planning_team(
     db: Any = None,
     session_summary_manager: Any = None,
     compression_manager: Any = None,
+    extra_tools: list[Any] | None = None,
 ) -> Team:
     planner = create_adorable_agent(
         db=db,
         session_summary_manager=session_summary_manager,
         compression_manager=compression_manager,
+        extra_tools=extra_tools,
         name="Planner",
         role=f"{AGENT_ROLE}. Primary focus: planning (read-only preference).",
         instructions=_mk_instructions(
