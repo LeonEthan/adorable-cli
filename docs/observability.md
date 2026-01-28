@@ -39,3 +39,5 @@ ador serve
 
 The observability data is stored in the underlying database (SQLite by default).
 See `docs/database.md` (if available) or check `~/.adorable/memory.db`.
+You can override the path with `ADORABLE_DB_PATH` (or `db.path` in `config.json`) to share
+sessions between CLI and `ador serve`.

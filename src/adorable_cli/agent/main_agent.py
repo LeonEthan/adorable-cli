@@ -48,7 +48,9 @@ def create_adorable_agent(
             commands=[
                 "uvx mcp-server-fetch",
                 "npx -y @playwright/mcp@latest",
-            ]
+            ],
+            urls=["https://docs.agno.com/mcp"],
+            urls_transports=["streamable-http"],
         ),
         create_image_understanding_tool(),
         TodoTools(),

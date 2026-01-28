@@ -1,8 +1,9 @@
+import hashlib
 import importlib.util
 import inspect
 import sys
 from pathlib import Path
-from typing import List, Type
+from typing import List
 
 from agno.tools import Toolkit
 from adorable_cli.console import console
@@ -24,7 +25,8 @@ class ToolsLoader:
                 continue
 
             try:
-                module_name = f"adorable_ext_tools_{file_path.stem}"
+                digest = hashlib.md5(str(file_path).encode("utf-8")).hexdigest()[:8]
+                module_name = f"adorable_ext_tools_{file_path.stem}_{digest}"
                 spec = importlib.util.spec_from_file_location(module_name, file_path)
                 if spec and spec.loader:
                     module = importlib.util.module_from_spec(spec)

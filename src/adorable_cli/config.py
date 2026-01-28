@@ -85,6 +85,14 @@ def normalize_config(cfg: dict[str, Any]) -> dict[str, str]:
         "CONFIRM_MODE": pick(cfg.get("CONFIRM_MODE"), cfg.get("confirm_mode")),
         "SERVER_HOST": pick(cfg.get("SERVER_HOST"), _get_nested(cfg, ["server", "host"])),
         "SERVER_PORT": pick(cfg.get("SERVER_PORT"), _get_nested(cfg, ["server", "port"])),
+        "DB_PATH": pick(cfg.get("DB_PATH"), _get_nested(cfg, ["db", "path"])),
+        "KB_BACKEND": pick(cfg.get("KB_BACKEND"), _get_nested(cfg, ["knowledge", "backend"])),
+        "KB_PGVECTOR_DSN": pick(
+            cfg.get("KB_PGVECTOR_DSN"), _get_nested(cfg, ["knowledge", "pgvector", "dsn"])
+        ),
+        "KB_PGVECTOR_TABLE": pick(
+            cfg.get("KB_PGVECTOR_TABLE"), _get_nested(cfg, ["knowledge", "pgvector", "table"])
+        ),
     }
 
 
@@ -109,6 +117,16 @@ def materialize_json_config(flat_cfg: dict[str, str]) -> dict[str, Any]:
         "server": {
             "host": flat_cfg.get("SERVER_HOST", "") or "0.0.0.0",
             "port": parse_int(flat_cfg.get("SERVER_PORT", ""), 7777),
+        },
+        "db": {
+            "path": flat_cfg.get("DB_PATH", ""),
+        },
+        "knowledge": {
+            "backend": flat_cfg.get("KB_BACKEND", ""),
+            "pgvector": {
+                "dsn": flat_cfg.get("KB_PGVECTOR_DSN", ""),
+                "table": flat_cfg.get("KB_PGVECTOR_TABLE", ""),
+            },
         },
     }
 
@@ -142,6 +160,10 @@ def load_env_from_config(cfg: dict[str, str]) -> None:
     confirm_mode = cfg.get("CONFIRM_MODE", "")
     server_host = cfg.get("SERVER_HOST", "")
     server_port = cfg.get("SERVER_PORT", "")
+    db_path = cfg.get("DB_PATH", "")
+    kb_backend = cfg.get("KB_BACKEND", "")
+    kb_pgvector_dsn = cfg.get("KB_PGVECTOR_DSN", "")
+    kb_pgvector_table = cfg.get("KB_PGVECTOR_TABLE", "")
     if api_key:
         os.environ["API_KEY"] = api_key
         os.environ["OPENAI_API_KEY"] = api_key
@@ -164,6 +186,18 @@ def load_env_from_config(cfg: dict[str, str]) -> None:
     if server_port:
         os.environ["ADORABLE_SERVER_PORT"] = server_port
         os.environ.setdefault("SERVER_PORT", server_port)
+    if db_path:
+        os.environ["ADORABLE_DB_PATH"] = db_path
+        os.environ.setdefault("DB_PATH", db_path)
+    if kb_backend:
+        os.environ["ADORABLE_KB_BACKEND"] = kb_backend
+        os.environ.setdefault("KB_BACKEND", kb_backend)
+    if kb_pgvector_dsn:
+        os.environ["ADORABLE_KB_PGVECTOR_DSN"] = kb_pgvector_dsn
+        os.environ.setdefault("KB_PGVECTOR_DSN", kb_pgvector_dsn)
+    if kb_pgvector_table:
+        os.environ["ADORABLE_KB_PGVECTOR_TABLE"] = kb_pgvector_table
+        os.environ.setdefault("KB_PGVECTOR_TABLE", kb_pgvector_table)
 
 
 def ensure_config_interactive() -> dict[str, str]:

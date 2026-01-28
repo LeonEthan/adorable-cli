@@ -90,6 +90,35 @@ def kb_update(
     kb_create(name, path)
 
 
+@kb_app.command("check")
+def kb_check(
+    name: str = typer.Option("default", "--name", help="Name of the knowledge base"),
+    backend: Optional[str] = typer.Option(None, "--backend", help="Backend: lancedb or pgvector"),
+    pgvector_dsn: Optional[str] = typer.Option(
+        None, "--pgvector-dsn", help="pgvector DSN, e.g. postgres://user:pass@host/db"
+    ),
+    pgvector_table: Optional[str] = typer.Option(None, "--pgvector-table", help="pgvector table name"),
+) -> None:
+    from adorable_cli.knowledge.manager import KnowledgeManager
+    from adorable_cli.settings import reload_settings
+
+    if backend:
+        os.environ["ADORABLE_KB_BACKEND"] = backend
+    if pgvector_dsn:
+        os.environ["ADORABLE_KB_PGVECTOR_DSN"] = pgvector_dsn
+    if pgvector_table:
+        os.environ["ADORABLE_KB_PGVECTOR_TABLE"] = pgvector_table
+
+    reload_settings()
+
+    try:
+        KnowledgeManager(name=name)
+        print("Knowledge backend initialized successfully.")
+    except Exception as e:
+        print(f"Knowledge backend check failed: {e}")
+        raise typer.Exit(1)
+
+
 @eval_app.command("run")
 def eval_run(
     suite_path: str = typer.Argument(..., help="Path to eval suite YAML file"),

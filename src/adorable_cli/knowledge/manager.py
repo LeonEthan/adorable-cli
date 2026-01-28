@@ -1,11 +1,12 @@
-import os
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
 from agno.knowledge.knowledge import Knowledge
-from agno.vectordb.lancedb import LanceDb, SearchType
 from agno.knowledge.embedder.openai import OpenAIEmbedder
+from agno.vectordb.lancedb import LanceDb, SearchType
+
 from adorable_cli.config import CONFIG_PATH
+from adorable_cli.settings import settings
 
 class KnowledgeManager:
     def __init__(self, name: str, base_dir: Optional[Path] = None):
@@ -15,19 +16,66 @@ class KnowledgeManager:
         self.db_path = self.kb_path / "lancedb"
         self.kb_path.mkdir(parents=True, exist_ok=True)
         
-        # Initialize Vector DB
-        # Note: We rely on standard OpenAI embeddings for now.
-        # Future work: make embedder configurable via config.json
-        self.vector_db = LanceDb(
-            table_name=name,
-            uri=str(self.db_path),
-            embedder=OpenAIEmbedder(),
-            search_type=SearchType.vector,
-        )
+        self.vector_db = self._build_vector_db(name)
         
         self.knowledge = Knowledge(
             vector_db=self.vector_db,
         )
+
+    def _build_vector_db(self, table_name: str):
+        backend = (settings.kb_backend or "lancedb").strip().lower()
+        embedder = OpenAIEmbedder()
+
+        if backend in {"pgvector", "pg", "postgres", "postgresql"}:
+            dsn = (settings.kb_pgvector_dsn or "").strip()
+            if not dsn:
+                raise ValueError(
+                    "pgvector backend requires a DSN. Set KB_PGVECTOR_DSN or "
+                    "ADORABLE_KB_PGVECTOR_DSN (or knowledge.pgvector.dsn in config.json)."
+                )
+            table = (settings.kb_pgvector_table or table_name).strip() or table_name
+            return self._build_pgvector_db(table=table, dsn=dsn, embedder=embedder)
+
+        return LanceDb(
+            table_name=table_name,
+            uri=str(self.db_path),
+            embedder=embedder,
+            search_type=SearchType.vector,
+        )
+
+    def _build_pgvector_db(self, *, table: str, dsn: str, embedder: OpenAIEmbedder):
+        try:
+            from agno.vectordb.pgvector import PgVectorDb
+        except Exception as e:
+            raise RuntimeError(
+                "pgvector backend is not available. Install the pgvector extra for agno and "
+                "ensure database drivers are installed."
+            ) from e
+
+        candidates = [
+            {"table_name": table, "connection_string": dsn},
+            {"table_name": table, "dsn": dsn},
+            {"table_name": table, "uri": dsn},
+            {"table_name": table, "conn_str": dsn},
+            {"table": table, "dsn": dsn},
+        ]
+
+        last_error: Exception | None = None
+        for kwargs in candidates:
+            try:
+                return PgVectorDb(
+                    **kwargs,
+                    embedder=embedder,
+                    search_type=SearchType.vector,
+                )
+            except TypeError as e:
+                last_error = e
+                continue
+
+        raise RuntimeError(
+            "Unable to initialize PgVectorDb with the provided DSN. "
+            "Check your agno version and pgvector configuration."
+        ) from last_error
 
     def load_directory(self, path: Path, extensions: List[str] = None) -> int:
         """

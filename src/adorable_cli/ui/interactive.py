@@ -124,6 +124,23 @@ def _get_shell_text(targs: dict) -> str:
     return str(val or "")
 
 
+def _looks_like_mcp_jsonrpc_error(exc: BaseException) -> bool:
+    """Detect MCP JSON-RPC parse errors so we can show a friendly message."""
+    seen: set[int] = set()
+    cur: BaseException | None = exc
+    while cur and id(cur) not in seen:
+        seen.add(id(cur))
+        text = f"{type(cur).__name__}: {cur}"
+        if "Failed to parse JSONRPC message from server" in text:
+            return True
+        if "JSONRPCMessage" in text and "Invalid JSON" in text:
+            return True
+        if "json_invalid" in text and "JSONRPCMessage" in text:
+            return True
+        cur = cur.__cause__ or cur.__context__
+    return False
+
+
 # Command Dispatcher Definition
 CommandCallback = Callable[[str, Any, Console, Any], bool]
 SPECIAL_COMMANDS: Dict[str, CommandCallback] = {}
@@ -579,7 +596,16 @@ async def run_interactive(agent, *, session_id: str | None = None, user_id: str 
                     user_id=user_id,
                 )
                 renderer.render_footer(final_metrics, start_at, start_perf)
-            except Exception:
+            except Exception as exc:
+                if _looks_like_mcp_jsonrpc_error(exc):
+                    console.print(
+                        "[error]MCP tool failed to parse server output (the tool may have exited).[/error]"
+                    )
+                    console.print(
+                        "[muted]Retry the request, or disable MCP with "
+                        "ADORABLE_DISABLE_MCP=1 if the issue persists.[/muted]"
+                    )
+                    continue
                 console.print_exception()
     finally:
         await _close_pinned_mcp_tools(pinned_mcp_tools)

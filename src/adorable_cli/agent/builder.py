@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from agno.compression.manager import CompressionManager
 from agno.db.sqlite import SqliteDb
@@ -65,8 +66,28 @@ def _load_extensions() -> list:
     # Load Skills (as tools)
     skills_loader = SkillsLoader(CONFIG_PATH / "skills")
     extra_tools.extend(skills_loader.load_skills())
+
+    claude_skills_dir = Path.home() / ".claude" / "skills"
+    if claude_skills_dir.exists():
+        extra_tools.extend(SkillsLoader(claude_skills_dir).load_skills())
     
-    return extra_tools
+    return _dedupe_tools(extra_tools)
+
+
+def _dedupe_tools(tools: list) -> list:
+    seen: set[tuple[str | None, str, str]] = set()
+    unique: list = []
+    for tool in tools:
+        key = (
+            getattr(tool, "name", None),
+            tool.__class__.__module__,
+            tool.__class__.__name__,
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(tool)
+    return unique
 
 
 def build_agent():

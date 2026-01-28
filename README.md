@@ -115,6 +115,7 @@ ador --help
 - `ador` / `adorable`: Start interactive chat
 - `ador config`: Configure API keys and models
 - `ador version`: Print CLI version
+- `ador kb check`: Smoke-check knowledge backend (e.g., pgvector)
 
 ### Interactive Shortcuts
 - `Enter`: Submit message
@@ -149,6 +150,15 @@ ador --api-key sk-xxxx --model gpt-4o chat
   - `OPENAI_API_KEY` / `API_KEY`
   - `OPENAI_BASE_URL` / `BASE_URL`
   - `DEEPAGENTS_MODEL_ID` / `MODEL_ID`
+
+### Advanced Configuration
+
+- **Database Path**: set `ADORABLE_DB_PATH` (or `db.path` in `config.json`) to share sessions between CLI and `ador serve`.
+- **Knowledge Backend**: set `knowledge.backend` to `lancedb` (default) or `pgvector`.
+  - For pgvector, set `knowledge.pgvector.dsn` and optional `knowledge.pgvector.table`.
+- **Extensions**:
+  - `~/.adorable/tools`, `~/.adorable/skills`, `~/.adorable/commands`
+  - Optional: `~/.claude/skills`
 
 Example (`~/.adorable/config.json`):
 
