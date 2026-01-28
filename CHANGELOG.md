@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.16](https://github.com/LeonEthan/adorable-cli/compare/v0.2.15...v0.2.16) (2026-01-28)
+
+
+### Features
+
+* Add pgvector support, configurable DB path, and improved MCP handling ([0588b47](https://github.com/LeonEthan/adorable-cli/commit/0588b479feda7d7baca55fa00c704ff844d643e2))
+* Add pgvector support, configurable DB path, and improved MCP handling ([5277b97](https://github.com/LeonEthan/adorable-cli/commit/5277b972b339662383299651aad1997d6fbc9bf5))
+* Implement Milestone 6 - Load workflows from YAML ([91dcf1e](https://github.com/LeonEthan/adorable-cli/commit/91dcf1e3ede3430f7f66cedf6cccde4a6288e260))
+* Implement Milestone 7 (Knowledge Base MVP) ([e025a30](https://github.com/LeonEthan/adorable-cli/commit/e025a309d807b6692a0353919a664e3db2f77b64))
+* Implement Milestone 8 (Extensibility) ([64da259](https://github.com/LeonEthan/adorable-cli/commit/64da259897b982dffc0c614ed0fdfe594ccdab2b))
+* Implement Milestone 9 (Production Features) ([0cb10d1](https://github.com/LeonEthan/adorable-cli/commit/0cb10d1b12b5c23aed9e3106f8c448c35130fb06))
+
 ## [0.2.15](https://github.com/LeonEthan/adorable-cli/compare/v0.2.14...v0.2.15) (2026-01-07)
 
 
