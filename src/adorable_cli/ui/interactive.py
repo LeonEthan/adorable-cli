@@ -20,6 +20,8 @@ from rich.text import Text
 
 from adorable_cli.console import console
 from adorable_cli.settings import settings
+from adorable_cli.config import CONFIG_PATH
+from adorable_cli.ext.commands import CommandsLoader
 from adorable_cli.ui.enhanced_input import create_enhanced_session
 from adorable_cli.ui.stream_renderer import StreamRenderer
 from adorable_cli.ui.utils import detect_language_from_extension, summarize_args
@@ -33,6 +35,12 @@ def _is_mcp_tool(obj: Any) -> bool:
 
 
 async def _pin_mcp_tools_to_current_task(agent: Any) -> list[Any]:
+    if os.environ.get("ADORABLE_DISABLE_MCP", "").lower() in {"1", "true", "yes", "on"}:
+        return []
+
+    if os.environ.get("ADORABLE_MCP_PIN_ON_STARTUP", "").lower() not in {"1", "true", "yes", "on"}:
+        return []
+
     tools = [t for t in getattr(agent, "tools", []) if _is_mcp_tool(t)]
     if not tools:
         return []
@@ -49,7 +57,11 @@ async def _pin_mcp_tools_to_current_task(agent: Any) -> list[Any]:
             continue
 
         if hasattr(tool, "connect"):
-            await tool.connect(force=True)
+            timeout_s = float(os.environ.get("ADORABLE_MCP_CONNECT_TIMEOUT", "10.0"))
+            try:
+                await asyncio.wait_for(tool.connect(force=True), timeout=timeout_s)
+            except Exception:
+                continue
 
         setattr(tool, "_adorable_owner_task", owner_task)
         setattr(tool, "_adorable_original_close", getattr(tool, "close", None))
@@ -110,6 +122,23 @@ def _get_shell_text(targs: dict) -> str:
     if isinstance(val, (list, tuple)):
         return " ".join(str(x) for x in val)
     return str(val or "")
+
+
+def _looks_like_mcp_jsonrpc_error(exc: BaseException) -> bool:
+    """Detect MCP JSON-RPC parse errors so we can show a friendly message."""
+    seen: set[int] = set()
+    cur: BaseException | None = exc
+    while cur and id(cur) not in seen:
+        seen.add(id(cur))
+        text = f"{type(cur).__name__}: {cur}"
+        if "Failed to parse JSONRPC message from server" in text:
+            return True
+        if "JSONRPCMessage" in text and "Invalid JSON" in text:
+            return True
+        if "json_invalid" in text and "JSONRPCMessage" in text:
+            return True
+        cur = cur.__cause__ or cur.__context__
+    return False
 
 
 # Command Dispatcher Definition
@@ -343,7 +372,13 @@ def handle_tool_confirmation(tool, console: Console) -> bool:
 
 
 async def process_agent_stream(
-    agent, user_input: str, renderer: StreamRenderer, console: Console
+    agent,
+    user_input: str,
+    renderer: StreamRenderer,
+    console: Console,
+    *,
+    session_id: str | None = None,
+    user_id: str | None = None,
 ) -> tuple[str, Any, datetime, float]:
     """Process agent stream with tool confirmations. Returns (final_text, metrics, start_time, start_perf).
 
@@ -353,7 +388,13 @@ async def process_agent_stream(
     start_at = datetime.now()
     start_perf = perf_counter()
 
-    stream = agent.arun(user_input, stream=True, stream_intermediate_steps=True)
+    stream = agent.arun(
+        user_input,
+        stream=True,
+        stream_intermediate_steps=True,
+        session_id=session_id,
+        user_id=user_id,
+    )
     if inspect.isawaitable(stream):
         stream = await stream
 
@@ -430,6 +471,8 @@ async def process_agent_stream(
                     updated_tools=getattr(paused_event, "tools", None),
                     stream=True,
                     stream_intermediate_steps=True,
+                    session_id=session_id,
+                    user_id=user_id,
                 )
                 if inspect.isawaitable(stream):
                     stream = await stream
@@ -443,7 +486,7 @@ async def process_agent_stream(
     return final_text, final_metrics, start_at, start_perf
 
 
-async def run_interactive(agent) -> int:
+async def run_interactive(agent, *, session_id: str | None = None, user_id: str | None = None) -> int:
     # Get configuration
     try:
         ver = pkg_version("adorable-cli")
@@ -510,6 +553,12 @@ async def run_interactive(agent) -> int:
 
     pinned_mcp_tools = await _pin_mcp_tools_to_current_task(agent)
 
+    # Load custom commands
+    commands_loader = CommandsLoader(CONFIG_PATH / "commands")
+    custom_commands = commands_loader.load_commands()
+    if custom_commands:
+        console.print(f"[info]Loaded {len(custom_commands)} custom commands[/info]")
+
     try:
         while True:
             try:
@@ -529,12 +578,34 @@ async def run_interactive(agent) -> int:
                     break
                 continue
 
+            # Check for custom slash commands
+            if user_input.startswith("/"):
+                cmd_key = user_input[1:].strip()
+                if cmd_key in custom_commands:
+                    cmd_obj = custom_commands[cmd_key]
+                    console.print(f"[info]Running command /{cmd_key}[/info]")
+                    user_input = cmd_obj.prompt
+
             try:
                 final_text, final_metrics, start_at, start_perf = await process_agent_stream(
-                    agent, user_input, renderer, console
+                    agent,
+                    user_input,
+                    renderer,
+                    console,
+                    session_id=session_id,
+                    user_id=user_id,
                 )
                 renderer.render_footer(final_metrics, start_at, start_perf)
-            except Exception:
+            except Exception as exc:
+                if _looks_like_mcp_jsonrpc_error(exc):
+                    console.print(
+                        "[error]MCP tool failed to parse server output (the tool may have exited).[/error]"
+                    )
+                    console.print(
+                        "[muted]Retry the request, or disable MCP with "
+                        "ADORABLE_DISABLE_MCP=1 if the issue persists.[/muted]"
+                    )
+                    continue
                 console.print_exception()
     finally:
         await _close_pinned_mcp_tools(pinned_mcp_tools)

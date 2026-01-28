@@ -73,7 +73,7 @@
   ```
 </div>
 
-> 首次运行会引导配置 `API_KEY`、`BASE_URL`、`MODEL_ID`，保存到 `~/.adorable/config`。随时可运行 `ador config` 修改。
+> 首次运行会引导配置 `API_KEY`、`BASE_URL`、`MODEL_ID`，保存到 `~/.adorable/config.json`（同时维护旧版兼容文件 `~/.adorable/config`）。随时可运行 `ador config` 修改。
 
 <div align="center">
   <a id="platform"></a>
@@ -139,18 +139,31 @@ ador --api-key sk-xxxx --model gpt-4o chat
 
 </div>
 
-- **配置文件**：`~/.adorable/config`
+- **配置文件**：`~/.adorable/config.json`（旧版兼容：`~/.adorable/config`）
 - **环境变量**：
   - `OPENAI_API_KEY` / `API_KEY`
   - `OPENAI_BASE_URL` / `BASE_URL`
   - `DEEPAGENTS_MODEL_ID` / `MODEL_ID`
 
-示例（`~/.adorable/config`）：
+示例（`~/.adorable/config.json`）：
 
-```ini
-API_KEY=sk-xxxx
-BASE_URL=https://api.openai.com/v1
-MODEL_ID=gpt-4o
+```json
+{
+  "openai": {
+    "api_key": "sk-xxxx",
+    "base_url": "https://api.openai.com/v1"
+  },
+  "models": {
+    "default": "gpt-4o",
+    "fast": "gpt-4o-mini",
+    "vlm": "gpt-4o"
+  },
+  "confirm_mode": "ask",
+  "server": {
+    "host": "0.0.0.0",
+    "port": 7777
+  }
+}
 ```
 
 <div align="center">

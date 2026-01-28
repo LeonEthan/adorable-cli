@@ -3,7 +3,7 @@ from typing import Any
 
 from agno.agent import Agent
 from agno.models.openai import OpenAILike
-from agno.tools.mcp import MCPTools, MultiMCPTools
+from agno.tools.mcp import MultiMCPTools
 from agno.tools.duckduckgo import DuckDuckGoTools
 from agno.tools.file import FileTools
 from agno.tools.python import PythonTools
@@ -11,6 +11,7 @@ from agno.tools.reasoning import ReasoningTools
 from agno.tools.shell import ShellTools
 
 from adorable_cli.agent.prompts import AGENT_INSTRUCTIONS, AGENT_ROLE
+from adorable_cli.agent.policy import ToolPolicy, apply_tool_policy
 from adorable_cli.settings import settings
 from adorable_cli.tools.todo_tools import TodoTools
 from adorable_cli.tools.vision_tool import create_image_understanding_tool
@@ -20,6 +21,12 @@ def create_adorable_agent(
     db: Any = None,
     session_summary_manager: Any = None,
     compression_manager: Any = None,
+    *,
+    name: str = "Adorable Agent",
+    role: str = AGENT_ROLE,
+    instructions: list[str] = AGENT_INSTRUCTIONS,
+    tool_policy: ToolPolicy | None = None,
+    extra_tools: list[Any] | None = None,
 ) -> Agent:
     """
     Creates a single autonomous agent with all capabilities.
@@ -41,21 +48,26 @@ def create_adorable_agent(
             commands=[
                 "uvx mcp-server-fetch",
                 "npx -y @playwright/mcp@latest",
-            ]
+            ],
+            urls=["https://docs.agno.com/mcp"],
+            urls_transports=["streamable-http"],
         ),
         create_image_understanding_tool(),
         TodoTools(),
     ]
 
+    if extra_tools:
+        tools.extend(extra_tools)
+
     # Create the Agent
     agent = Agent(
-        name="Adorable Agent",
+        name=name,
         model=OpenAILike(
             id=settings.model_id, api_key=settings.api_key, base_url=settings.base_url
         ),
         tools=tools,
-        role=AGENT_ROLE,
-        instructions=AGENT_INSTRUCTIONS,
+        role=role,
+        instructions=instructions,
         add_datetime_to_context=True,
         enable_agentic_state=True,
         add_session_state_to_context=True,
@@ -82,20 +94,6 @@ def create_adorable_agent(
         compression_manager=compression_manager,
     )
 
-    # Enable confirmation for shell commands
-    # The handler auto-approves safe operations, only prompts for deletion commands
-    # See handle_tool_confirmation in interactive.py for the logic
-    shell_names = {"run_shell_command"}
-
-    for tk in agent.tools:
-        functions = getattr(tk, "functions", {})
-        if not isinstance(functions, dict):
-            continue
-        for name, f in functions.items():
-            if name in shell_names:
-                try:
-                    setattr(f, "requires_confirmation", True)
-                except Exception:
-                    pass
+    apply_tool_policy(agent, tool_policy or ToolPolicy())
 
     return agent
