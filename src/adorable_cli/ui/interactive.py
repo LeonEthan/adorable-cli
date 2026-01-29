@@ -38,7 +38,8 @@ async def _pin_mcp_tools_to_current_task(agent: Any) -> list[Any]:
     if os.environ.get("ADORABLE_DISABLE_MCP", "").lower() in {"1", "true", "yes", "on"}:
         return []
 
-    if os.environ.get("ADORABLE_MCP_PIN_ON_STARTUP", "").lower() not in {"1", "true", "yes", "on"}:
+    pin_setting = os.environ.get("ADORABLE_MCP_PIN_ON_STARTUP", "").lower()
+    if pin_setting in {"0", "false", "no", "off"}:
         return []
 
     tools = [t for t in getattr(agent, "tools", []) if _is_mcp_tool(t)]
@@ -56,7 +57,7 @@ async def _pin_mcp_tools_to_current_task(agent: Any) -> list[Any]:
             pinned.append(tool)
             continue
 
-        if hasattr(tool, "connect"):
+        if pin_setting in {"1", "true", "yes", "on"} and hasattr(tool, "connect"):
             timeout_s = float(os.environ.get("ADORABLE_MCP_CONNECT_TIMEOUT", "10.0"))
             try:
                 await asyncio.wait_for(tool.connect(force=True), timeout=timeout_s)
@@ -69,24 +70,35 @@ async def _pin_mcp_tools_to_current_task(agent: Any) -> list[Any]:
         setattr(tool, "_adorable_original_aexit", getattr(tool, "__aexit__", None))
 
         async def _connect_guard(self, force: bool = False):
-            if asyncio.current_task() is not getattr(self, "_adorable_owner_task", None):
-                return None
             orig = getattr(self, "_adorable_original_connect", None)
             if orig is None:
                 return None
+            setattr(self, "_adorable_connection_task", asyncio.current_task())
             return await orig(force=force)
 
-        async def _close_noop(self):
-            return None
+        async def _close_guard(self):
+            orig = getattr(self, "_adorable_original_close", None)
+            if orig is None:
+                return None
+            conn_task = getattr(self, "_adorable_connection_task", None)
+            if conn_task is not None and asyncio.current_task() is not conn_task:
+                return None
+            return await orig()
 
-        async def _aexit_noop(self, _exc_type, _exc_val, _exc_tb):
-            return None
+        async def _aexit_guard(self, _exc_type, _exc_val, _exc_tb):
+            orig = getattr(self, "_adorable_original_aexit", None)
+            if orig is None:
+                return None
+            conn_task = getattr(self, "_adorable_connection_task", None)
+            if conn_task is not None and asyncio.current_task() is not conn_task:
+                return None
+            return await orig(_exc_type, _exc_val, _exc_tb)
 
         tool.connect = types.MethodType(_connect_guard, tool)
         if hasattr(tool, "close"):
-            tool.close = types.MethodType(_close_noop, tool)
+            tool.close = types.MethodType(_close_guard, tool)
         if hasattr(tool, "__aexit__"):
-            tool.__aexit__ = types.MethodType(_aexit_noop, tool)
+            tool.__aexit__ = types.MethodType(_aexit_guard, tool)
 
         setattr(tool, "_adorable_pinned", True)
         pinned.append(tool)
@@ -98,10 +110,13 @@ async def _close_pinned_mcp_tools(pinned: list[Any]) -> None:
     if not pinned:
         return
     for tool in pinned:
-        orig_close = getattr(tool, "_adorable_original_close", None)
-        if orig_close is None:
+        close = getattr(tool, "close", None)
+        if close is None:
             continue
-        await orig_close()
+        try:
+            await close()
+        except Exception:
+            continue
 
 
 def print_version() -> int:
