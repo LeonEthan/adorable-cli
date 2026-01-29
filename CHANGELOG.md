@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.17](https://github.com/LeonEthan/adorable-cli/compare/v0.2.16...v0.2.17) (2026-01-29)
+
+
+### Bug Fixes
+
+* update interactive.py ([26c0edf](https://github.com/LeonEthan/adorable-cli/commit/26c0edfaa9dc84c0a07394353f11281bff248503))
+* update interactive.py ([606aab3](https://github.com/LeonEthan/adorable-cli/commit/606aab395967d414a894271f14b31ab8a935508a))
+
 ## [0.2.16](https://github.com/LeonEthan/adorable-cli/compare/v0.2.15...v0.2.16) (2026-01-28)
 
 
