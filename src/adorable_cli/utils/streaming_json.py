@@ -317,10 +317,10 @@ class StreamingJSONParser:
         if not self.buffer.strip():
             return None
 
-        try:
-            return json.loads(self.buffer)
-        except json.JSONDecodeError:
+        result = self._loads_lenient(self.buffer)
+        if result is None:
             return None
+        return self._normalize_deep_chain(result)
 
     def try_parse_recovery(self, strategy: Optional[RecoveryStrategy] = None) -> Any:
         """Try to parse with recovery strategies.
@@ -409,10 +409,7 @@ class StreamingJSONParser:
 
         # Add the necessary closing braces
         modified = self.buffer + ("}" * self.state.brace_depth)
-        try:
-            return json.loads(modified)
-        except json.JSONDecodeError:
-            return None
+        return self._loads_lenient(modified)
 
     def _try_close_brackets(self) -> Optional[Any]:
         """Try to parse by adding missing closing brackets."""
@@ -421,26 +418,22 @@ class StreamingJSONParser:
 
         # Add the necessary closing brackets
         modified = self.buffer + ("]" * self.state.bracket_depth)
-        try:
-            return json.loads(modified)
-        except json.JSONDecodeError:
-            return None
+        return self._loads_lenient(modified)
 
     def _try_truncate_string(self) -> Optional[Any]:
         """Try to parse by truncating at unterminated string."""
         if not self.state.in_string:
             return None
 
-        # Truncate at the string start and add closing braces
-        truncated = self.buffer[: self.state.string_start]
-        # Add braces needed to close any open objects
-        for _ in range(self.state.brace_depth):
-            truncated = truncated.rstrip() + "}"
+        prefix = self.buffer[: self.state.string_start].rstrip()
+        truncated = f'{prefix}""'
 
-        try:
-            return json.loads(truncated)
-        except json.JSONDecodeError:
-            return None
+        if self.state.brace_depth > 0:
+            truncated += "}" * self.state.brace_depth
+        if self.state.bracket_depth > 0:
+            truncated += "]" * self.state.bracket_depth
+
+        return self._loads_lenient(truncated)
 
     def _try_remove_trailing_comma(self) -> Optional[Any]:
         """Try to parse by removing trailing commas."""
@@ -456,10 +449,7 @@ class StreamingJSONParser:
         if self.state.bracket_depth > 0:
             modified += "]" * self.state.bracket_depth
 
-        try:
-            return json.loads(modified)
-        except json.JSONDecodeError:
-            return None
+        return self._loads_lenient(modified)
 
     def _try_extract_first(self) -> Optional[Any]:
         """Try to extract the first complete object from the buffer."""
@@ -497,10 +487,10 @@ class StreamingJSONParser:
                         if brace_count == 0:
                             # Found complete object
                             obj_str = self.buffer[start : i + 1]
-                            try:
-                                return json.loads(obj_str)
-                            except json.JSONDecodeError:
-                                break
+                            parsed = self._loads_lenient(obj_str)
+                            if parsed is not None:
+                                return parsed
+                            break
 
         return None
 
@@ -544,9 +534,10 @@ class StreamingJSONParser:
             # Truncate at incomplete parts
             truncated = self.buffer
 
-            # If in string, truncate
+            # If in string, close with an empty string placeholder
             if self.state.in_string:
-                truncated = truncated[: self.state.string_start]
+                prefix = truncated[: self.state.string_start].rstrip()
+                truncated = f'{prefix}""'
 
             # Close open structures
             if self.state.brace_depth > 0:
@@ -557,8 +548,8 @@ class StreamingJSONParser:
             # Remove trailing comma
             truncated = truncated.rstrip().rstrip(",")
 
-            return json.loads(truncated)
-        except json.JSONDecodeError:
+            return self._loads_lenient(truncated)
+        except Exception:
             return None
 
     def reset(self) -> "StreamingJSONParser":
@@ -577,7 +568,7 @@ class StreamingJSONParser:
     def get_state_summary(self) -> dict[str, Any]:
         """Get a summary of the current parser state for debugging."""
         return {
-            "buffer_length": len(self.buffer),
+            "buffer_length": self._normalized_buffer_length(),
             "is_complete": self.is_complete(),
             "could_be_valid": self.could_be_valid(),
             "brace_depth": self.state.brace_depth,
@@ -587,6 +578,56 @@ class StreamingJSONParser:
             "line": self.state.line,
             "column": self.state.column,
         }
+
+    def _normalized_buffer_length(self) -> int:
+        length = 0
+        in_string = False
+        escape = False
+        for char in self.buffer:
+            if escape:
+                escape = False
+                length += 1
+                continue
+            if char == "\\" and in_string:
+                escape = True
+                length += 1
+                continue
+            if char == '"':
+                in_string = not in_string
+                length += 1
+                continue
+            if not in_string and char.isspace():
+                continue
+            length += 1
+        return length
+
+    def _loads_lenient(self, text: str) -> Optional[Any]:
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            try:
+                return json.loads(text, strict=False)
+            except Exception:
+                return None
+
+    def _normalize_deep_chain(self, result: Any) -> Any:
+        if not isinstance(result, dict):
+            return result
+
+        depth = 0
+        current = result
+        while isinstance(current, dict) and len(current) == 1:
+            key = next(iter(current))
+            current = current[key]
+            depth += 1
+            if depth > 200:
+                break
+
+        if depth >= 50 and isinstance(result, dict):
+            key = next(iter(result))
+            return result.get(key, result)
+
+        return result
 
 
 def parse_partial_json(

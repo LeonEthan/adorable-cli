@@ -55,6 +55,8 @@ class ContextItem:
         """Rough token estimation."""
         if isinstance(self.content, str):
             return len(self.content) // 4
+        elif isinstance(self.content, (list, tuple)):
+            return len(str(self.content)) // 4
         elif isinstance(self.content, dict):
             return len(str(self.content)) // 4
         return 100  # Default estimate
@@ -352,12 +354,17 @@ class ClaudeMdLoader:
 
         # Walk up the directory tree
         while True:
+            found_local = False
             for filename in self.config.filenames:
                 md_path = current / filename
                 if md_path.exists() and md_path.is_file():
                     content = self._load_file(md_path)
                     if content:
                         results[md_path] = content
+                        found_local = True
+
+            if found_local and self.config.override_local:
+                break
 
             # Stop at root
             if current == current.parent:
@@ -388,8 +395,8 @@ class ClaudeMdLoader:
             return ""
 
         if self.config.override_local:
-            # Use only the closest file
-            closest = min(files.keys(), key=lambda p: len(p.parts))
+            # Use only the closest file (deepest in the tree)
+            closest = max(files.keys(), key=lambda p: len(p.parts))
             return files[closest]
         else:
             # Merge all files with markers

@@ -10,7 +10,7 @@ Claude Code's normalize_to_size algorithm:
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum, auto
 from typing import Any, Callable, Optional, Union
 
@@ -128,6 +128,8 @@ def normalize_to_size(
     max_bytes: int = 100_000,
     config: Optional[NormalizerConfig] = None,
     size_calculator: Optional[SizeCalculator] = None,
+    *,
+    max_depth: Optional[int] = None,
 ) -> Any:
     """Normalize an object to fit within size constraints.
 
@@ -153,21 +155,30 @@ def normalize_to_size(
     """
     if config is None:
         config = NormalizerConfig(max_bytes=max_bytes)
+    if max_depth is not None:
+        config = replace(config, max_depth=max_depth)
+
+    if max_bytes < config.max_string_length:
+        config = replace(config, max_string_length=max_bytes)
 
     if size_calculator is None:
         size_calculator = SizeCalculator()
 
-    # Quick check - if already within budget, return as-is
-    current_size = size_calculator.calculate(obj)
-    if current_size <= max_bytes:
-        return obj
-
-    # Iterative normalization
     current_obj = obj
+    current_size = size_calculator.calculate(current_obj)
     current_depth = _get_depth(current_obj)
+    if current_depth > config.max_depth:
+        current_obj = _reduce_depth(current_obj, config.max_depth, config)
+        current_size = size_calculator.calculate(current_obj)
+        current_depth = _get_depth(current_obj)
 
-    # Try reducing depth first
-    while current_size > max_bytes and current_depth > 1:
+    # Quick check - if already within budget, return as-is
+    if current_size <= max_bytes and current_depth <= config.max_depth:
+        return current_obj
+
+    # Try reducing depth first (avoid collapsing shallow roots)
+    min_depth = 2
+    while current_size > max_bytes and current_depth > min_depth:
         new_obj = _reduce_depth(current_obj, current_depth - 1, config)
         new_size = size_calculator.calculate(new_obj)
 
@@ -226,14 +237,14 @@ def _reduce_depth_recursive(
         # At target depth - summarize or truncate
         if isinstance(obj, (list, tuple, set)):
             length = len(obj)
-            if length > config.max_list_items // 2:
-                return f"<list with {length} items>"
-            return obj
+            if length == 0:
+                return []
+            return f"<list with {length} items>"
         elif isinstance(obj, dict):
             key_count = len(obj)
-            if key_count > config.max_dict_keys // 2:
-                return f"<dict with {key_count} keys>"
-            return obj
+            if key_count == 0:
+                return {}
+            return f"<dict with {key_count} keys>"
         elif isinstance(obj, str) and len(obj) > config.max_string_length // 2:
             return obj[: config.max_string_length // 2] + "..."
         return obj
@@ -335,6 +346,10 @@ def _apply_truncation_recursive(
                 # Summarize these keys
                 if isinstance(value, (list, dict)):
                     result[key] = f"<{len(value)} items>"
+                elif isinstance(value, str):
+                    result[key] = _apply_truncation_recursive(
+                        value, config, size_calculator, seen.copy()
+                    )
                 else:
                     result[key] = value
             else:

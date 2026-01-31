@@ -13,6 +13,7 @@ allowing real-time UI feedback during tool execution.
 from __future__ import annotations
 
 import asyncio
+import inspect
 import time
 from dataclasses import dataclass, field
 from enum import Enum, auto
@@ -465,18 +466,20 @@ class ParallelToolExecutor:
             )
 
             # Execute the tool
-            if asyncio.iscoroutinefunction(tool_callable):
-                result = await asyncio.wait_for(
-                    tool_callable(**tool_input),
-                    timeout=timeout,
-                )
+            is_async_callable = asyncio.iscoroutinefunction(tool_callable) or inspect.iscoroutinefunction(
+                getattr(tool_callable, "__call__", None)
+            )
+            if is_async_callable:
+                result = await asyncio.wait_for(tool_callable(**tool_input), timeout=timeout)
             else:
                 # Run sync function in thread pool
-                loop = asyncio.get_event_loop()
+                loop = asyncio.get_running_loop()
                 result = await asyncio.wait_for(
                     loop.run_in_executor(None, lambda: tool_callable(**tool_input)),
                     timeout=timeout,
                 )
+                if inspect.isawaitable(result):
+                    result = await asyncio.wait_for(result, timeout=timeout)
 
             execution_time_ms = int((time.time() - start_time) * 1000)
 
@@ -529,15 +532,13 @@ class ParallelToolExecutor:
         if not path.is_absolute():
             path = self.context.cwd / path
 
-        # Check if file exists and was cached
-        if path.exists():
-            cached = self.context.get_cached_file(path)
-            if cached is None:
-                return (
-                    False,
-                    f"File {path} must be read before editing. "
-                    "Use read_file first.",
-                )
+        cached = self.context.get_cached_file(path)
+        if cached is None:
+            return (
+                False,
+                f"File {path} must be read before editing. "
+                "Use read_file first.",
+            )
 
         return True, ""
 

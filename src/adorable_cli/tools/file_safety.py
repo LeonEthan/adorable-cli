@@ -537,15 +537,17 @@ class MultiEditTool:
 
         # Phase 3: Prepare all edits
         prepared_edits: list[tuple[MultiEdit, str, str]] = []  # edit, original, new
+        current_contents: dict[Path, str] = {}
         for edit in edits:
-            cached = self.file_cache.get_cached(edit.path)
-            if cached:
-                original = cached.content
+            if edit.path in current_contents:
+                original = current_contents[edit.path]
             else:
-                original = ""
+                cached = self.file_cache.get_cached(edit.path)
+                original = cached.content if cached else ""
 
             new_content = original.replace(edit.old_text, edit.new_text)
             prepared_edits.append((edit, original, new_content))
+            current_contents[edit.path] = new_content
 
         if dry_run:
             # Return dry-run results

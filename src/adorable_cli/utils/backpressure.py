@@ -20,6 +20,7 @@ Usage:
 from __future__ import annotations
 
 import asyncio
+import time
 from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
@@ -73,11 +74,18 @@ class PrioritizedEvent:
 
     event: AgentEvent
     priority: EventPriority
-    timestamp: float = field(default_factory=lambda: asyncio.get_event_loop().time())
+    timestamp: float = field(default_factory=lambda: _default_timestamp())
 
     def __lt__(self, other: PrioritizedEvent) -> bool:
         """Compare for priority queue (lower priority value = higher priority)."""
         return self.priority.value < other.priority.value
+
+
+def _default_timestamp() -> float:
+    try:
+        return asyncio.get_running_loop().time()
+    except RuntimeError:
+        return time.monotonic()
 
 
 class BackpressureController:
