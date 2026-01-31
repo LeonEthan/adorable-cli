@@ -1,16 +1,16 @@
+from __future__ import annotations
+
 from pathlib import Path
-from typing import List
+from typing import Any
 
-from agno.tools import Toolkit
-from adorable_cli.ext.tools import ToolsLoader
+from adorable_cli.ext._python_loader import load_objects_from_directory
 
-class SkillsLoader(ToolsLoader):
-    """
-    Loader for skills. Currently behaves identically to ToolsLoader,
-    loading Toolkit subclasses from python files.
-    """
-    def __init__(self, skills_dir: Path):
-        super().__init__(skills_dir)
-    
-    def load_skills(self) -> List[Toolkit]:
-        return self.load_tools()
+
+class SkillsLoader:
+    """Load external skills (as tools) from a directory of Python modules."""
+
+    def __init__(self, directory: Path) -> None:
+        self.directory = directory
+
+    def load_skills(self) -> list[Any]:
+        return load_objects_from_directory(self.directory)

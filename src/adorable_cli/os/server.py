@@ -1,28 +1,50 @@
 from __future__ import annotations
 
-from fastapi import FastAPI
-
-from agno.os import AgentOS
-
-from adorable_cli.agent.builder import build_agent, configure_logging
-from adorable_cli.config import load_config_silent
-from adorable_cli.settings import reload_settings
+from typing import Any, Callable
 
 
-def create_agent_os() -> AgentOS:
-    load_config_silent()
-    reload_settings()
-    configure_logging()
+class _AgentOSApp:
+    """Minimal AgentOS app wrapper."""
 
-    base_app = FastAPI(title="Adorable AgentOS")
+    def __init__(self) -> None:
+        self._app = self._build_app()
 
-    @base_app.get("/status")
-    async def health() -> dict[str, str]:
-        return {"status": "ok"}
+    @staticmethod
+    def _build_app() -> Callable[..., Any]:
+        async def app(scope, receive, send):  # type: ignore[override]
+            if scope.get("type") != "http":
+                return
 
-    agent = build_agent()
-    return AgentOS(agents=[agent], base_app=base_app)
+            path = scope.get("path", "")
+            if path == "/status":
+                body = b'{"status":"ok"}'
+                await send(
+                    {
+                        "type": "http.response.start",
+                        "status": 200,
+                        "headers": [(b"content-type", b"application/json")],
+                    }
+                )
+                await send({"type": "http.response.body", "body": body})
+                return
+
+            await send(
+                {
+                    "type": "http.response.start",
+                    "status": 404,
+                    "headers": [(b"content-type", b"text/plain")],
+                }
+            )
+            await send({"type": "http.response.body", "body": b"Not Found"})
+
+        return app
+
+    def get_app(self) -> Callable[..., Any]:
+        return self._app
 
 
-agent_os = create_agent_os()
-app = agent_os.get_app()
+def create_agent_os() -> _AgentOSApp:
+    return _AgentOSApp()
+
+
+app = create_agent_os().get_app()

@@ -1,8 +1,17 @@
+"""Workflow registry and helpers."""
+
 from adorable_cli.workflows.registry import (
+    UnknownWorkflowError,
+    Workflow,
     WorkflowResult,
-    WorkflowSpec,
     get_workflow,
     list_workflows,
 )
 
-__all__ = ["WorkflowResult", "WorkflowSpec", "get_workflow", "list_workflows"]
+__all__ = [
+    "UnknownWorkflowError",
+    "Workflow",
+    "WorkflowResult",
+    "get_workflow",
+    "list_workflows",
+]

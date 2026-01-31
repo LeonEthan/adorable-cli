@@ -1,60 +1,126 @@
-import yaml
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Any
 
-from adorable_cli.console import console
+try:
+    import yaml
+except Exception:  # pragma: no cover - optional dependency fallback
+    yaml = None
 
-class CustomCommand:
-    def __init__(self, name: str, prompt: str, description: str = ""):
-        self.name = name
-        self.prompt = prompt
-        self.description = description
+
+@dataclass(frozen=True)
+class CommandDefinition:
+    name: str
+    prompt: str
+    description: str | None = None
+    source_path: Path | None = None
+
 
 class CommandsLoader:
-    def __init__(self, commands_dir: Path):
-        self.commands_dir = commands_dir
+    """Load custom slash commands from a directory."""
 
-    def load_commands(self) -> Dict[str, CustomCommand]:
-        """
-        Load custom commands from markdown files.
-        Returns a dict mapping command name (without slash) to CustomCommand object.
-        """
-        commands = {}
-        if not self.commands_dir.exists():
-            return commands
+    def __init__(self, directory: Path) -> None:
+        self.directory = directory
 
-        for file_path in self.commands_dir.glob("*.md"):
-            try:
-                content = file_path.read_text(encoding="utf-8")
-                frontmatter, body = self._parse_frontmatter(content)
-                
-                # Command name defaults to filename stem if not in frontmatter
-                cmd_name = frontmatter.get("command", file_path.stem).strip().lstrip("/")
-                description = frontmatter.get("description", "")
-                
-                # Append body to prompt if prompt is in frontmatter, or just use body
-                prompt = frontmatter.get("prompt", "")
-                if body:
-                    prompt = f"{prompt}\n{body}".strip()
-                
-                if cmd_name and prompt:
-                    commands[cmd_name] = CustomCommand(cmd_name, prompt, description)
-                    # console.print(f"[success]Loaded command: /{cmd_name}[/success]") # Too noisy?
-            except Exception as e:
-                console.print(f"[error]Failed to load command {file_path.name}: {e}[/error]")
+    def load_commands(self) -> dict[str, CommandDefinition]:
+        if not self.directory.exists():
+            return {}
+
+        commands: dict[str, CommandDefinition] = {}
+        for path in sorted(self.directory.iterdir()):
+            if path.is_dir() or path.name.startswith("."):
+                continue
+
+            items = []
+            if path.suffix.lower() in {".json", ".yaml", ".yml"}:
+                items = self._load_structured(path)
+            else:
+                cmd = self._load_text_command(path)
+                if cmd is not None:
+                    items = [cmd]
+
+            for cmd in items:
+                commands[cmd.name] = cmd
 
         return commands
 
-    def _parse_frontmatter(self, content: str) -> tuple[dict, str]:
-        """
-        Simple frontmatter parser.
-        """
-        if content.startswith("---"):
-            parts = content.split("---", 2)
-            if len(parts) >= 3:
-                try:
-                    meta = yaml.safe_load(parts[1]) or {}
-                    return meta, parts[2].strip()
-                except yaml.YAMLError:
-                    pass
-        return {}, content.strip()
+    def _load_text_command(self, path: Path) -> CommandDefinition | None:
+        try:
+            prompt = path.read_text(encoding="utf-8").strip()
+        except Exception:
+            return None
+        if not prompt:
+            return None
+        return CommandDefinition(name=path.stem, prompt=prompt, source_path=path)
+
+    def _load_structured(self, path: Path) -> list[CommandDefinition]:
+        try:
+            raw = path.read_text(encoding="utf-8")
+        except Exception:
+            return []
+
+        data: Any = None
+        if path.suffix.lower() == ".json":
+            try:
+                data = json.loads(raw)
+            except Exception:
+                return []
+        else:
+            if yaml is None:
+                return []
+            try:
+                data = yaml.safe_load(raw)
+            except Exception:
+                return []
+
+        return self._coerce_structured_data(data, path)
+
+    def _coerce_structured_data(self, data: Any, path: Path) -> list[CommandDefinition]:
+        if data is None:
+            return []
+
+        if isinstance(data, dict) and isinstance(data.get("commands"), list):
+            items = data.get("commands") or []
+        elif isinstance(data, list):
+            items = data
+        else:
+            items = [data]
+
+        commands: list[CommandDefinition] = []
+        for item in items:
+            cmd = self._command_from_mapping(item, path)
+            if cmd is not None:
+                commands.append(cmd)
+        return commands
+
+    def _command_from_mapping(self, mapping: Any, path: Path) -> CommandDefinition | None:
+        if not isinstance(mapping, dict):
+            return None
+
+        name = str(mapping.get("name") or mapping.get("command") or path.stem).strip()
+        prompt = mapping.get("prompt")
+        if prompt is None:
+            prompt = mapping.get("text") or mapping.get("instruction") or mapping.get("template")
+
+        if isinstance(prompt, list):
+            prompt = "\n".join(str(line) for line in prompt)
+        if prompt is None:
+            return None
+
+        prompt_text = str(prompt).strip()
+        if not name or not prompt_text:
+            return None
+
+        description = mapping.get("description") or mapping.get("desc")
+        if description is not None:
+            description = str(description).strip() or None
+
+        return CommandDefinition(
+            name=name,
+            prompt=prompt_text,
+            description=description,
+            source_path=path,
+        )

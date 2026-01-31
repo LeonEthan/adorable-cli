@@ -40,15 +40,21 @@
 </div>
 
 - **Deep Agent**: Built on Agno framework for planning, web search, coding, and file operations.
+- **Claude Code-Inspired Architecture**: Streaming-first async generator loop, parallel tool execution, smart context compression.
 - **Interleaved Thinking**: Continuous **Think → Act → Analyze** loop—reasons before every step, never guesses, verifies all assumptions.
 - **Persistent Memory**: Uses SQLite (`~/.adorable/memory.db`) and session summaries to maintain context across long sessions.
+- **Smart Context Management**: Priority-based context assembly with `normalize_to_size` for token limit handling.
 - **Multi-Modal Toolset**:
   - **Planning**: Reasoning engine & Todo list management.
-  - **File Operations**: File reading, writing, and directory navigation.
+  - **File Operations**: Read-before-edit safety, batch operations with `MultiEditTool`, line number prefix validation.
   - **Web Search**: Deep web search (DuckDuckGo) & web content fetching (Fetch MCP).
   - **Coding**: Python scripting & Shell commands.
   - **Vision**: Vision capabilities for image analysis.
-- **Interactive UI**: Rich terminal interface with history, autocompletion, and shortcuts.
+  - **Hierarchical Agents**: `AgentTool` for task decomposition with sub-agents.
+- **Streaming-First UI**: Real-time response streaming with Rich terminal interface.
+- **ANR Detection**: Worker thread monitors event loop responsiveness (5000ms threshold) with automatic stack capture.
+- **Line Number Validation**: Detects and warns about line number prefixes in edit operations (e.g., "2\tcontent" → "content").
+- **Bash Sandbox**: macOS `sandbox-exec` integration with generated profiles for secure command execution.
 
 <div align="center">
 
@@ -115,7 +121,6 @@ ador --help
 - `ador` / `adorable`: Start interactive chat
 - `ador config`: Configure API keys and models
 - `ador version`: Print CLI version
-- `ador kb check`: Smoke-check knowledge backend (e.g., pgvector)
 
 ### Interactive Shortcuts
 - `Enter`: Submit message
@@ -153,12 +158,7 @@ ador --api-key sk-xxxx --model gpt-4o chat
 
 ### Advanced Configuration
 
-- **Database Path**: set `ADORABLE_DB_PATH` (or `db.path` in `config.json`) to share sessions between CLI and `ador serve`.
-- **Knowledge Backend**: set `knowledge.backend` to `lancedb` (default) or `pgvector`.
-  - For pgvector, set `knowledge.pgvector.dsn` and optional `knowledge.pgvector.table`.
-- **Extensions**:
-  - `~/.adorable/tools`, `~/.adorable/skills`, `~/.adorable/commands`
-  - Optional: `~/.claude/skills`
+- **Database Path**: set `ADORABLE_DB_PATH` (or `db.path` in `config.json`) for persistent memory storage.
 
 Example (`~/.adorable/config.json`):
 
@@ -187,12 +187,48 @@ Example (`~/.adorable/config.json`):
 
 </div>
 
-- **Planning**: `ReasoningTools` for strategy; `TodoTools` for task tracking.
-- **Research**: `DuckDuckGoTools` for search; Fetch MCP for web content extraction; `FileTools` for local context.
-- **Execution**: `PythonTools` for logic/data; `ShellTools` for system ops.
+- **Planning**: `ReasoningTools` for strategy with `think()`/`analyze()`; `TodoTools` for task tracking.
+- **Context Management**: `ContextAssembler` with priority-based truncation; `normalize_to_size` for token limits.
+- **Research**: `DuckDuckGoTools` for search; Fetch MCP for web content; `FileTools` with read-before-edit safety.
+- **Execution**: `PythonTools` for logic/data; `ShellTools` with confirmation for destructive commands.
+- **Tool Orchestration**: `ParallelToolExecutor` with side-effect categorization; batch read-only operations.
+- **Hierarchical Agents**: `AgentTool` for task decomposition; `ResultSynthesizer` for combining sub-agent outputs.
+- **Memory**: `SessionSummarizer` for long-term context; `WorkingMemory` for high-priority items; `CompressionManager` for tool results.
 - **Perception**: `ImageUnderstandingTool` for visual inputs.
+- **Prompt Engineering**: Aggressive conciseness enforcement; confidence calibration; "never guess" uncertainty handling.
 
 See `src/adorable_cli/agent/prompts.py` for the full system prompt and guidelines.
+
+<div align="center">
+
+## 🏗 Architecture
+
+</div>
+
+Adorable CLI is rebuilt with Claude Code's architectural patterns:
+
+### Core Components
+
+| Component | Description | Location |
+|-----------|-------------|----------|
+| **Agent Loop** | Six-phase async generator (`tt` function) with streaming-first design | `core/loop.py` |
+| **Message Models** | Three-stage representation (CliMessage → APIMessage → StreamAccumulator) | `models/messages.py` |
+| **Context Management** | Priority-based assembly + `normalize_to_size` for token limits | `context/` |
+| **Tool Execution** | Parallel batch execution with side-effect categorization | `tools/executor.py` |
+| **File Safety** | Read-before-edit enforcement with `MultiEditTool` | `tools/file_safety.py` |
+| **Streaming JSON** | Progressive parser with recovery strategies | `utils/streaming_json.py` |
+| **AgentTool** | Hierarchical task decomposition with sub-agents | `tools/agent_tool.py` |
+| **Memory** | Session summarization + working memory + compression | `memory/` |
+| **Prompts** | Aggressive conciseness + psychological techniques | `prompts/` |
+| **ANR Detection** | Event loop monitoring with heartbeat and stack capture | `core/anr_detector.py` |
+
+### Key Design Patterns
+
+1. **Streaming-First**: All operations use async generators for real-time UI updates
+2. **Interleaved Reasoning**: `think()` → action → `analyze()` loop prevents tool hallucination
+3. **Safety-First**: File edits require read-before-edit validation
+4. **Parallel Execution**: Read-only tools run in parallel; write operations are serialized
+5. **Smart Compression**: Context automatically compresses when approaching token limits
 
 <div align="center">
 
