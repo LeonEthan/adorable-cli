@@ -1,19 +1,35 @@
-"""Centralized prompt templates and system instructions."""
+"""Centralized prompt templates and system instructions.
+
+Integrates with the prompt engineering system for aggressive conciseness
+and Claude Code-style prompting techniques.
+"""
+
+from adorable_cli.prompts.engineering import PromptEngineer, PromptStyle
+from adorable_cli.prompts.templates import (
+    get_system_prompt,
+    get_error_prompt,
+    get_recovery_prompt,
+    compress_for_emergency,
+)
+from adorable_cli.prompts.psychological import (
+    ConfidenceCalibrator,
+    UncertaintyHandler,
+    ErrorFraming,
+    get_never_guess_prompt,
+)
+
+# Legacy prompts maintained for backward compatibility
 
 SESSION_SUMMARY_PROMPT = (
-    "Summarize the conversation history for an autonomous CLI agent. "
-    "Capture the user's intent, key actions performed (files edited, commands run), "
-    "and the current state of tasks. "
-    "Preserve critical details like file paths and error outcomes. "
-    "Do not use JSON/XML. Return a concise narrative text."
+    "Summarize conversation history. "
+    "Capture user intent, key actions, file paths, errors. "
+    "No JSON/XML. Concise narrative only."
 )
 
 COMPRESSION_INSTRUCTIONS = (
-    "Compress tool outputs for an autonomous CLI agent. "
-    "Preserve file paths, shell outputs, error messages, code snippets, "
-    "URLs, and search findings essential for next steps. "
-    "Remove redundant formatting, whitespace, or generic boilerplate. "
-    "Keep the output actionable and precise."
+    "Compress outputs. Preserve: paths, errors, code, URLs. "
+    "Remove: redundant formatting, whitespace, boilerplate. "
+    "Keep actionable and precise."
 )
 
 AGENT_ROLE = "A powerful command-line autonomous agent for complex, long-horizon tasks"
